@@ -13,6 +13,14 @@ class SignupRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+    captcha_token: str
+    captcha_answer: str
+    remember_me: bool = False
+
+
+class CaptchaResponse(BaseModel):
+    question: str
+    captcha_token: str
 
 
 class AuthResponse(BaseModel):
@@ -55,4 +63,17 @@ class ConversationDetail(BaseModel):
     title: str
     created_at: datetime
     updated_at: datetime
-    messages: list[ChatMessageResponse]
+    messages: list[ChatMessageResponse]\
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ForgotPasswordResponse(BaseModel):
+    message: str
+    reset_token: str | None = None
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
