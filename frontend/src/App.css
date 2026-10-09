@@ -536,6 +536,28 @@
 
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
+.input-icon {
+    width: 42px;
+    height: 42px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 12px;
+
+    color: #ffffff;
+    cursor: pointer;
+
+    transition: all 0.2s ease;
+}
+
+.input-icon:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.18);
+}
 
 .message-content {
   max-width: 76%;
@@ -4572,4 +4594,159 @@ body {
 
 .chat-started .message-row.assistant .message-bubble {
   margin-right: auto !important;
+}
+.input-icon {
+    width: 42px;
+    height: 42px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: #181725;
+    border: 1px solid #302d43;
+    border-radius: 10px;
+
+    color: #ffffff;
+    font-size: 22px;
+    font-weight: 400;
+
+    cursor: pointer;
+
+    transition: 0.2s ease;
+}
+
+.input-icon:hover {
+    background: #211f31;
+    border-color: #403b58;
+}
+/* PDF selected-file UI */
+
+.input-wrapper {
+  position: relative;
+}
+
+.uploaded-pdf {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: calc(100% - 100px);
+  max-width: 420px;
+  min-height: 48px;
+  margin: 0 0 8px 8px;
+  padding: 8px 10px;
+  box-sizing: border-box;
+
+  background: rgba(34, 31, 52, 0.92);
+  border: 1px solid rgba(139, 92, 246, 0.38);
+  border-radius: 12px;
+
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.uploaded-pdf-icon {
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(139, 92, 246, 0.14);
+  border: 1px solid rgba(139, 92, 246, 0.28);
+  border-radius: 9px;
+  font-size: 17px;
+}
+
+.uploaded-pdf-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.uploaded-pdf-info strong {
+  display: block;
+  color: #f5f3ff;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.uploaded-pdf-info small {
+  color: #a78bfa;
+  font-size: 11px;
+  line-height: 15px;
+}
+
+.uploaded-pdf-remove {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  padding: 0;
+
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #aaa6bd;
+
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.uploaded-pdf-remove:hover {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+}
+
+.pdf-upload-button {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 10px;
+
+  color: #ffffff;
+  font-size: 21px;
+  font-weight: 400;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pdf-upload-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(167, 139, 250, 0.35);
+  color: #c4b5fd;
+}
+
+.pdf-upload-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .uploaded-pdf {
+    width: calc(100% - 16px);
+    max-width: none;
+  }
 }

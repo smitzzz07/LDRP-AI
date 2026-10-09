@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import "./App.css";
 
@@ -14,9 +14,15 @@ import ResetPassword from "./pages/ResetPassword";
 
 const API_BASE = "http://127.0.0.1:8000/api";
 
+
+
 const CHAT_API = `${API_BASE}/chat`;
 
 const AUTH_API = `${API_BASE}/auth`;
+
+const PDF_UPLOAD_API = `${API_BASE}/upload-pdf`;
+
+const PDF_CHAT_API = `${API_BASE}/pdf-chat`;
 
 
 
@@ -47,43 +53,74 @@ const suggestedQuestions = [
 
 
 function getStoredToken() {
+
   return (
+
     localStorage.getItem("access_token") ||
+
     sessionStorage.getItem("access_token")
+
   );
+
 }
 
 
+
 function getSavedUser() {
+
   try {
+
     const localUser = localStorage.getItem("user");
 
+
+
     if (localUser) {
+
       return JSON.parse(localUser);
+
     }
 
-    const sessionUser =
-      sessionStorage.getItem("user");
+
+
+    const sessionUser = sessionStorage.getItem("user");
+
+
 
     if (sessionUser) {
+
       return JSON.parse(sessionUser);
+
     }
+
+
 
     return null;
 
   } catch {
+
     return null;
+
   }
+
 }
+
 
 
 function clearAuth() {
+
   localStorage.removeItem("access_token");
+
   localStorage.removeItem("user");
 
+
+
   sessionStorage.removeItem("access_token");
+
   sessionStorage.removeItem("user");
+
 }
+
+
 
 function ChatApp({ user, onLogout }) {
 
@@ -94,6 +131,20 @@ function ChatApp({ user, onLogout }) {
   const [started, setStarted] = useState(false);
 
   const [loading, setLoading] = useState(false);
+
+
+
+  // PDF states
+
+  const [uploadedPdf, setUploadedPdf] = useState(null);
+
+  const [uploadingPdf, setUploadingPdf] = useState(false);
+
+
+
+  const fileInputRef = useRef(null);
+
+
 
   const [expandedSources, setExpandedSources] = useState({});
 
@@ -119,11 +170,23 @@ function ChatApp({ user, onLogout }) {
 
     return token
 
-      ? { Authorization: `Bearer ${token}` }
+      ? {
+
+          Authorization: `Bearer ${token}`,
+
+        }
 
       : {};
 
   };
+
+
+
+  // ---------------------------------------------------------
+
+  // LOAD CHAT HISTORY
+
+  // ---------------------------------------------------------
 
 
 
@@ -155,6 +218,10 @@ function ChatApp({ user, onLogout }) {
 
         }
 
+
+
+        setHistory([]);
+
         return;
 
       }
@@ -162,6 +229,8 @@ function ChatApp({ user, onLogout }) {
 
 
       const data = await response.json();
+
+
 
       setHistory(Array.isArray(data) ? data : []);
 
@@ -187,6 +256,14 @@ function ChatApp({ user, onLogout }) {
 
 
 
+  // ---------------------------------------------------------
+
+  // LOAD CONVERSATION
+
+  // ---------------------------------------------------------
+
+
+
   const loadConversation = async (id) => {
 
     if (loading || id === conversationId) return;
@@ -209,7 +286,13 @@ function ChatApp({ user, onLogout }) {
 
       if (!response.ok) {
 
-        if (response.status === 401) onLogout();
+        if (response.status === 401) {
+
+          onLogout();
+
+        }
+
+
 
         return;
 
@@ -249,13 +332,161 @@ function ChatApp({ user, onLogout }) {
 
       setQuestion("");
 
+
+
+      // Uploaded PDF belongs to the current temporary session.
+
+      setUploadedPdf(null);
+
     } catch {
 
-      // Keep the current chat if loading a previous conversation fails.
+      // Keep current chat if loading fails.
 
     }
 
   };
+
+
+
+  // ---------------------------------------------------------
+
+  // PDF UPLOAD
+
+  // ---------------------------------------------------------
+
+
+
+  const handlePdfUpload = async (event) => {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    if (
+      file.type !== "application/pdf" &&
+      !file.name.toLowerCase().endsWith(".pdf")
+    ) {
+      alert("Please select a PDF file.");
+      return;
+    }
+
+    setUploadingPdf(true);
+
+    // Show the selected filename immediately.
+    setUploadedPdf({
+      documentId: null,
+      filename: file.name,
+      pages: null,
+      chunks: null,
+    });
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const token = getStoredToken();
+
+      if (!token) {
+        throw new Error("Your login session has expired.");
+      }
+
+      const response = await fetch(PDF_UPLOAD_API, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail || "PDF upload failed."
+        );
+      }
+
+      setUploadedPdf({
+        documentId: data.document_id,
+        filename: data.filename || file.name,
+        pages: data.pages,
+        chunks: data.chunks,
+      });
+
+      setStarted(true);
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content:
+            `📄 ${data.filename || file.name} uploaded successfully.\n\n` +
+            `Pages: ${data.pages ?? "N/A"}\n` +
+            `Text chunks: ${data.chunks ?? "N/A"}\n\n` +
+            `You can now ask questions about this PDF.`,
+        },
+      ]);
+    } catch (error) {
+      setUploadedPdf(null);
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content:
+            `❌ PDF upload failed.\n\n${
+              error.message || "Unknown error"
+            }`,
+          error: true,
+        },
+      ]);
+    } finally {
+      setUploadingPdf(false);
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  // ---------------------------------------------------------
+
+  // REMOVE PDF
+
+  // ---------------------------------------------------------
+
+
+
+  const removeUploadedPdf = () => {
+
+    setUploadedPdf(null);
+
+
+
+    setMessages((prev) => [
+
+      ...prev,
+
+      {
+
+        role: "assistant",
+
+        content:
+
+          "📄 Uploaded PDF removed. You are now chatting with the main LDRP knowledge base.",
+
+      },
+
+    ]);
+
+  };
+
+
+
+  // ---------------------------------------------------------
+
+  // SEND MESSAGE
+
+  // ---------------------------------------------------------
 
 
 
@@ -301,37 +532,102 @@ function ChatApp({ user, onLogout }) {
 
 
 
-      const body = {
+      if (!token) {
 
-        question: userQuestion,
-
-      };
-
-
-
-      if (conversationId !== null) {
-
-        body.conversation_id = conversationId;
+        throw new Error("Your login session has expired.");
 
       }
 
 
 
-      const response = await fetch(CHAT_API, {
+      let response;
 
-        method: "POST",
 
-        headers: {
 
-          "Content-Type": "application/json",
+      // -----------------------------------------------------
 
-          Authorization: `Bearer ${token}`,
+      // IF PDF IS UPLOADED
 
-        },
+      // -----------------------------------------------------
 
-        body: JSON.stringify(body),
 
-      });
+
+      if (uploadedPdf) {
+        if (!uploadedPdf.documentId) {
+          throw new Error(
+            "Please wait until the PDF upload finishes."
+          );
+        }
+
+        response = await fetch(PDF_CHAT_API, {
+
+          method: "POST",
+
+          headers: {
+
+            "Content-Type": "application/json",
+
+            Authorization: `Bearer ${token}`,
+
+          },
+
+          body: JSON.stringify({
+
+            document_id: uploadedPdf.documentId,
+
+            question: userQuestion,
+
+          }),
+
+        });
+
+      }
+
+
+
+      // -----------------------------------------------------
+
+      // NORMAL LDRP RAG CHAT
+
+      // -----------------------------------------------------
+
+
+
+      else {
+
+        const body = {
+
+          question: userQuestion,
+
+        };
+
+
+
+        if (conversationId !== null) {
+
+          body.conversation_id = conversationId;
+
+        }
+
+
+
+        response = await fetch(CHAT_API, {
+
+          method: "POST",
+
+          headers: {
+
+            "Content-Type": "application/json",
+
+            Authorization: `Bearer ${token}`,
+
+          },
+
+          body: JSON.stringify(body),
+
+        });
+
+      }
 
 
 
@@ -361,6 +657,8 @@ function ChatApp({ user, onLogout }) {
 
 
 
+      // Normal chat creates/updates conversation.
+
       if (data.conversation_id) {
 
         setConversationId(data.conversation_id);
@@ -377,7 +675,11 @@ function ChatApp({ user, onLogout }) {
 
           role: "assistant",
 
-          content: data.answer,
+          content:
+
+            data.answer ||
+
+            "I could not generate an answer.",
 
           sources: data.sources || [],
 
@@ -389,7 +691,13 @@ function ChatApp({ user, onLogout }) {
 
 
 
-      await loadHistory();
+      // Refresh history only for normal LDRP conversations.
+
+      if (!uploadedPdf) {
+
+        await loadHistory();
+
+      }
 
     } catch (error) {
 
@@ -423,6 +731,14 @@ function ChatApp({ user, onLogout }) {
 
 
 
+  // ---------------------------------------------------------
+
+  // ENTER KEY
+
+  // ---------------------------------------------------------
+
+
+
   const handleKeyDown = (event) => {
 
     if (event.key === "Enter" && !event.shiftKey) {
@@ -434,6 +750,14 @@ function ChatApp({ user, onLogout }) {
     }
 
   };
+
+
+
+  // ---------------------------------------------------------
+
+  // NEW CHAT
+
+  // ---------------------------------------------------------
 
 
 
@@ -449,7 +773,29 @@ function ChatApp({ user, onLogout }) {
 
     setExpandedSources({});
 
+
+
+    // Clear temporary uploaded PDF.
+
+    setUploadedPdf(null);
+
+
+
+    if (fileInputRef.current) {
+
+      fileInputRef.current.value = "";
+
+    }
+
   };
+
+
+
+  // ---------------------------------------------------------
+
+  // DELETE CONVERSATION
+
+  // ---------------------------------------------------------
 
 
 
@@ -481,7 +827,13 @@ function ChatApp({ user, onLogout }) {
 
       if (!response.ok) {
 
-        if (response.status === 401) onLogout();
+        if (response.status === 401) {
+
+          onLogout();
+
+        }
+
+
 
         return;
 
@@ -489,7 +841,11 @@ function ChatApp({ user, onLogout }) {
 
 
 
-      setHistory((prev) => prev.filter((item) => item.id !== id));
+      setHistory((prev) =>
+
+        prev.filter((item) => item.id !== id)
+
+      );
 
 
 
@@ -509,9 +865,21 @@ function ChatApp({ user, onLogout }) {
 
 
 
+  // ---------------------------------------------------------
+
+  // UI
+
+  // ---------------------------------------------------------
+
+
+
   return (
 
     <div className="app">
+
+
+
+      {/* Background */}
 
       <div className="background">
 
@@ -521,7 +889,11 @@ function ChatApp({ user, onLogout }) {
 
         <div className="orb orb-three"></div>
 
+
+
         <div className="grid"></div>
+
+
 
         <div className="floating-ring ring-one"></div>
 
@@ -531,9 +903,15 @@ function ChatApp({ user, onLogout }) {
 
 
 
+      {/* HEADER */}
+
       <header className="header glass">
 
+
+
         <div className="header-left">
+
+
 
           <button
 
@@ -541,9 +919,21 @@ function ChatApp({ user, onLogout }) {
 
             className="header-menu"
 
-            onClick={() => setHistoryOpen((value) => !value)}
+            onClick={() =>
 
-            title={historyOpen ? "Hide chat history" : "Show chat history"}
+              setHistoryOpen((value) => !value)
+
+            }
+
+            title={
+
+              historyOpen
+
+                ? "Hide chat history"
+
+                : "Show chat history"
+
+            }
 
             aria-label="Toggle chat history"
 
@@ -557,23 +947,27 @@ function ChatApp({ user, onLogout }) {
 
           <div className="brand">
 
-          <div className="logo-3d">
 
-            <span>L</span>
+
+            <div className="logo-3d">
+
+              <span>L</span>
+
+            </div>
+
+
+
+            <div className="brand-text">
+
+              <h1>LDRP-ITR</h1>
+
+              <p>AI Academic Assistant</p>
+
+            </div>
+
+
 
           </div>
-
-
-
-          <div className="brand-text">
-
-            <h1>LDRP-ITR</h1>
-
-            <p>AI Academic Assistant</p>
-
-          </div>
-
-        </div>
 
 
 
@@ -582,6 +976,8 @@ function ChatApp({ user, onLogout }) {
 
 
         <div className="header-right">
+
+
 
           <div className="status">
 
@@ -593,7 +989,13 @@ function ChatApp({ user, onLogout }) {
 
 
 
-          <button className="new-chat" onClick={newChat}>
+          <button
+
+            className="new-chat"
+
+            onClick={newChat}
+
+          >
 
             + New Chat
 
@@ -603,9 +1005,15 @@ function ChatApp({ user, onLogout }) {
 
           <div className="user-menu">
 
+
+
             <div className="user-avatar-small">
 
-              {(user?.name || "U").charAt(0).toUpperCase()}
+              {(user?.name || "U")
+
+                .charAt(0)
+
+                .toUpperCase()}
 
             </div>
 
@@ -613,9 +1021,19 @@ function ChatApp({ user, onLogout }) {
 
             <div className="user-info">
 
-              <strong>{user?.name || "User"}</strong>
+              <strong>
 
-              <span>{user?.email || ""}</span>
+                {user?.name || "User"}
+
+              </strong>
+
+
+
+              <span>
+
+                {user?.email || ""}
+
+              </span>
 
             </div>
 
@@ -637,35 +1055,71 @@ function ChatApp({ user, onLogout }) {
 
             </button>
 
+
+
           </div>
 
+
+
         </div>
+
+
 
       </header>
 
 
 
+      {/* WORKSPACE */}
+
       <div className="workspace">
 
-        <aside className={`history-sidebar ${historyOpen ? "open" : "closed"}`}>
+
+
+        {/* CHAT HISTORY */}
+
+        <aside
+
+          className={`history-sidebar ${
+
+            historyOpen ? "open" : "closed"
+
+          }`}
+
+        >
+
+
 
           <div className="history-top">
 
+
+
             <div className="history-heading">
+
+
 
               <div className="history-title">
 
-                <span className="history-title-icon">◫</span>
+                <span className="history-title-icon">
+
+                  ◫
+
+                </span>
+
+
 
                 <span>Chat History</span>
 
               </div>
+
+
 
               <span className="history-count">
 
                 {history.length}
 
               </span>
+
+
 
             </div>
 
@@ -687,11 +1141,15 @@ function ChatApp({ user, onLogout }) {
 
             </button>
 
+
+
           </div>
 
 
 
           <div className="history-list">
+
+
 
             {historyLoading ? (
 
@@ -707,11 +1165,23 @@ function ChatApp({ user, onLogout }) {
 
               <div className="history-empty">
 
-                <div className="history-empty-icon">✦</div>
+                <div className="history-empty-icon">
+
+                  ✦
+
+                </div>
+
+
 
                 <strong>No conversations yet</strong>
 
-                <span>Your saved chats will appear here.</span>
+
+
+                <span>
+
+                  Your saved chats will appear here.
+
+                </span>
 
               </div>
 
@@ -723,27 +1193,49 @@ function ChatApp({ user, onLogout }) {
 
                   className={`history-item ${
 
-                    conversationId === item.id ? "active" : ""
+                    conversationId === item.id
+
+                      ? "active"
+
+                      : ""
 
                   }`}
 
                   key={item.id}
 
-                  onClick={() => loadConversation(item.id)}
+                  onClick={() =>
+
+                    loadConversation(item.id)
+
+                  }
 
                 >
 
-                  <span className="history-item-icon">◇</span>
+
+
+                  <span className="history-item-icon">
+
+                    ◇
+
+                  </span>
 
 
 
                   <span className="history-item-body">
 
+
+
                     <strong>{item.title}</strong>
+
+
 
                     <small>
 
-                      {new Date(item.updated_at).toLocaleDateString(
+                      {new Date(
+
+                        item.updated_at
+
+                      ).toLocaleDateString(
 
                         undefined,
 
@@ -759,6 +1251,8 @@ function ChatApp({ user, onLogout }) {
 
                     </small>
 
+
+
                   </span>
 
 
@@ -769,7 +1263,13 @@ function ChatApp({ user, onLogout }) {
 
                     onClick={(event) =>
 
-                      deleteConversation(event, item.id)
+                      deleteConversation(
+
+                        event,
+
+                        item.id
+
+                      )
 
                     }
 
@@ -777,9 +1277,15 @@ function ChatApp({ user, onLogout }) {
 
                   >
 
-                    {deletingId === item.id ? "…" : "×"}
+                    {deletingId === item.id
+
+                      ? "…"
+
+                      : "×"}
 
                   </span>
+
+
 
                 </button>
 
@@ -787,45 +1293,87 @@ function ChatApp({ user, onLogout }) {
 
             )}
 
+
+
           </div>
 
 
 
           <div className="history-bottom">
 
+
+
             <div className="history-account">
+
+
 
               <div className="history-account-avatar">
 
-                {(user?.name || "U").charAt(0).toUpperCase()}
+                {(user?.name || "U")
+
+                  .charAt(0)
+
+                  .toUpperCase()}
 
               </div>
+
+
 
               <div>
 
-                <strong>{user?.name || "User"}</strong>
+                <strong>
 
-                <span>Personal workspace</span>
+                  {user?.name || "User"}
+
+                </strong>
+
+
+
+                <span>
+
+                  Personal workspace
+
+                </span>
 
               </div>
 
+
+
             </div>
 
+
+
           </div>
+
+
 
         </aside>
 
 
 
+        {/* HISTORY TOGGLE */}
+
         <button
 
           className="history-toggle"
 
-          onClick={() => setHistoryOpen((value) => !value)}
+          onClick={() =>
 
-          title={historyOpen ? "Hide history" : "Show history"}
+            setHistoryOpen((value) => !value)
 
-          aria-label="Toggle chat history"
+          }
+
+          title={
+
+            historyOpen
+
+              ? "Hide history"
+
+              : "Show history"
+
+          }
+
+          aria-label="Toggle history"
 
         >
 
@@ -834,6 +1382,8 @@ function ChatApp({ user, onLogout }) {
         </button>
 
 
+
+        {/* MAIN CHAT */}
 
         <main
 
@@ -845,21 +1395,49 @@ function ChatApp({ user, onLogout }) {
 
         >
 
-          <section className={`hero ${started ? "hero-started" : ""}`}>
+
+
+          {/* HERO */}
+
+          <section
+
+            className={`hero ${
+
+              started ? "hero-started" : ""
+
+            }`}
+
+          >
+
+
 
             <div className="ai-orb">
 
-              <div className="orb-core">🎓</div>
+
+
+              <div className="orb-core">
+
+                🎓
+
+              </div>
+
+
 
               <div className="orb-ring ring-a"></div>
 
               <div className="orb-ring ring-b"></div>
 
+
+
             </div>
 
 
 
-            <div className="hero-badge">✦ LDRP INTELLIGENCE</div>
+            <div className="hero-badge">
+
+              ✦ LDRP INTELLIGENCE
+
+            </div>
 
 
 
@@ -877,9 +1455,11 @@ function ChatApp({ user, onLogout }) {
 
             <p>
 
-              Your AI-powered academic assistant for LDRP-ITR
+              Your AI-powered academic assistant
 
-              information and MCA resources.
+              for LDRP-ITR information and MCA
+
+              resources.
 
             </p>
 
@@ -893,315 +1473,465 @@ function ChatApp({ user, onLogout }) {
 
             </div>
 
+
+
           </section>
 
 
+
+          {/* SUGGESTIONS */}
 
           <section
 
             className={`suggestions ${
 
-              started ? "suggestions-hidden" : ""
+              started
+
+                ? "suggestions-hidden"
+
+                : ""
 
             }`}
 
           >
 
-            {suggestedQuestions.map((item, index) => (
 
-              <button
 
-                className="suggestion glass"
+            {suggestedQuestions.map(
 
-                key={item}
+              (item, index) => (
 
-                onClick={() => sendMessage(item)}
+                <button
 
-                style={{
+                  className="suggestion glass"
 
-                  animationDelay: `${index * 0.08}s`,
+                  key={item}
 
-                }}
+                  onClick={() =>
 
-              >
+                    sendMessage(item)
 
-                <span className="suggestion-icon">
+                  }
 
-                  {["📚", "🎓", "🔎", "📊"][index]}
+                  style={{
 
-                </span>
+                    animationDelay: `${
 
-                <span>{item}</span>
+                      index * 0.08
 
-                <span className="suggestion-arrow">→</span>
+                    }s`,
 
-              </button>
+                  }}
 
-            ))}
+                >
+
+
+
+                  <span className="suggestion-icon">
+
+                    {
+
+                      [
+
+                        "📚",
+
+                        "🎓",
+
+                        "🔎",
+
+                        "📊",
+
+                      ][index]
+
+                    }
+
+                  </span>
+
+
+
+                  <span>{item}</span>
+
+
+
+                  <span className="suggestion-arrow">
+
+                    →
+
+                  </span>
+
+
+
+                </button>
+
+              )
+
+            )}
+
+
 
           </section>
 
 
 
+          {/* MESSAGES */}
+
           <section
 
             className={`messages ${
 
-              started ? "messages-visible" : ""
+              started
+
+                ? "messages-visible"
+
+                : ""
 
             }`}
 
           >
 
-            {messages.map((message, index) => (
 
-              <div
 
-                className={`message-row ${message.role}`}
+            {messages.map(
 
-                key={`${conversationId || "new"}-${index}`}
+              (message, index) => (
 
-              >
+                <div
 
-                {message.role === "assistant" ? (
+                  className={`message-row ${message.role}`}
 
-                  <div className="assistant-avatar">L</div>
+                  key={`${conversationId || "new"}-${index}`}
 
-                ) : (
-
-                  <div className="user-avatar">You</div>
-
-                )}
+                >
 
 
 
-                <div className="message-content">
+                  {message.role ===
 
-                  <div
+                  "assistant" ? (
 
-                    className={`message-bubble ${
+                    <div className="assistant-avatar">
 
-                      message.error ? "error" : ""
-
-                    }`}
-
-                  >
-
-                    {message.role === "assistant" && (
-
-                      <div className="assistant-label">
-
-                        LDRP AI
-
-                      </div>
-
-                    )}
-
-
-
-                    <div className="answer-text">
-
-                      {message.content}
+                      L
 
                     </div>
 
-                  </div>
+                  ) : (
+
+                    <div className="user-avatar">
+
+                      You
+
+                    </div>
+
+                  )}
 
 
 
-                  {message.sources &&
-
-                    message.sources.length > 0 &&
-
-                    (() => {
-
-                      const isExpanded =
-
-                        !!expandedSources[index];
+                  <div className="message-content">
 
 
 
-                      const visibleSources = isExpanded
+                    <div
 
-                        ? message.sources
+                      className={`message-bubble ${
 
-                        : message.sources.slice(0, 1);
+                        message.error
 
+                          ? "error"
 
+                          : ""
 
-                      const hiddenCount = Math.max(
+                      }`}
 
-                        message.sources.length - 1,
-
-                        0
-
-                      );
+                    >
 
 
 
-                      return (
+                      {message.role ===
 
-                        <div className="sources">
+                        "assistant" && (
 
-                          <div className="sources-title">
+                        <div className="assistant-label">
 
-                            <span>◈</span>
+                          LDRP AI
 
-                            Sources
+                        </div>
 
-                          </div>
-
-
-
-                          {visibleSources.map(
-
-                            (source, sourceIndex) => (
-
-                              <div
-
-                                className="source-card glass"
-
-                                key={`${index}-${sourceIndex}`}
-
-                              >
-
-                                <div className="source-icon">
-
-                                  {source.source_type ===
-
-                                  "pdf"
-
-                                    ? "📄"
-
-                                    : "🌐"}
-
-                                </div>
+                      )}
 
 
 
-                                <div className="source-info">
+                      <div className="answer-text">
 
-                                  <strong>
+                        {message.content}
 
-                                    {source.title ||
-
-                                      source.source ||
-
-                                      "LDRP Source"}
-
-                                  </strong>
+                      </div>
 
 
 
-                                  <span>
+                    </div>
+
+
+
+                    {/* SOURCES */}
+
+                    {message.sources &&
+
+                      message.sources.length >
+
+                        0 &&
+
+                      (() => {
+
+                        const isExpanded =
+
+                          !!expandedSources[
+
+                            index
+
+                          ];
+
+
+
+                        const visibleSources =
+
+                          isExpanded
+
+                            ? message.sources
+
+                            : message.sources.slice(
+
+                                0,
+
+                                1
+
+                              );
+
+
+
+                        const hiddenCount =
+
+                          Math.max(
+
+                            message.sources
+
+                              .length - 1,
+
+                            0
+
+                          );
+
+
+
+                        return (
+
+                          <div className="sources">
+
+
+
+                            <div className="sources-title">
+
+                              <span>◈</span>
+
+                              Sources
+
+                            </div>
+
+
+
+                            {visibleSources.map(
+
+                              (
+
+                                source,
+
+                                sourceIndex
+
+                              ) => (
+
+                                <div
+
+                                  className="source-card glass"
+
+                                  key={`${index}-${sourceIndex}`}
+
+                                >
+
+
+
+                                  <div className="source-icon">
 
                                     {source.source_type ===
 
                                     "pdf"
 
-                                      ? `PDF • Page ${
+                                      ? "📄"
 
-                                          source.page ?? "N/A"
+                                      : "🌐"}
 
-                                        }`
+                                  </div>
 
-                                      : "Official LDRP Website"}
 
-                                  </span>
+
+                                  <div className="source-info">
+
+
+
+                                    <strong>
+
+                                      {source.title ||
+
+                                        source.source ||
+
+                                        "LDRP Source"}
+
+                                    </strong>
+
+
+
+                                    <span>
+
+                                      {source.source_type ===
+
+                                      "pdf"
+
+                                        ? `PDF • Page ${
+
+                                            source.page ??
+
+                                            "N/A"
+
+                                          }`
+
+                                        : "Official LDRP Website"}
+
+                                    </span>
+
+
+
+                                  </div>
+
+
+
+                                  {source.url && (
+
+                                    <a
+
+                                      href={
+
+                                        source.url
+
+                                      }
+
+                                      target="_blank"
+
+                                      rel="noopener noreferrer"
+
+                                      className="source-open"
+
+                                    >
+
+                                      Open ↗
+
+                                    </a>
+
+                                  )}
+
+
 
                                 </div>
 
+                              )
 
-
-                                {source.url && (
-
-                                  <a
-
-                                    href={source.url}
-
-                                    target="_blank"
-
-                                    rel="noopener noreferrer"
-
-                                    className="source-open"
-
-                                  >
-
-                                    Open ↗
-
-                                  </a>
-
-                                )}
-
-                              </div>
-
-                            )
-
-                          )}
+                            )}
 
 
 
-                          {message.sources.length > 1 && (
+                            {message.sources.length >
 
-                            <button
+                              1 && (
 
-                              type="button"
+                              <button
 
-                              className="sources-toggle"
+                                type="button"
 
-                              onClick={() =>
+                                className="sources-toggle"
 
-                                setExpandedSources(
+                                onClick={() =>
 
-                                  (prev) => ({
+                                  setExpandedSources(
 
-                                    ...prev,
+                                    (prev) => ({
 
-                                    [index]: !isExpanded,
+                                      ...prev,
 
-                                  })
+                                      [index]:
 
-                                )
+                                        !isExpanded,
 
-                              }
+                                    })
 
-                            >
+                                  )
 
-                              {isExpanded
+                                }
 
-                                ? "− Show less"
+                              >
 
-                                : `+ View ${hiddenCount} more`}
+                                {isExpanded
 
-                            </button>
+                                  ? "− Show less"
 
-                          )}
+                                  : `+ View ${hiddenCount} more`}
 
-                        </div>
+                              </button>
 
-                      );
+                            )}
 
-                    })()}
+
+
+                          </div>
+
+                        );
+
+                      })()}
+
+
+
+                  </div>
+
+
 
                 </div>
 
-              </div>
+              )
 
-            ))}
+            )}
 
 
+
+            {/* LOADING */}
 
             {loading && (
 
               <div className="message-row assistant">
 
-                <div className="assistant-avatar">L</div>
+
+
+                <div className="assistant-avatar">
+
+                  L
+
+                </div>
 
 
 
                 <div className="message-content">
 
+
+
                   <div className="message-bubble loading-bubble">
+
+
 
                     <div className="assistant-label">
 
@@ -1213,31 +1943,59 @@ function ChatApp({ user, onLogout }) {
 
                     <div className="thinking">
 
-                      <span></span>
+
 
                       <span></span>
 
                       <span></span>
 
-                      <small>Searching knowledge base...</small>
+                      <span></span>
+
+
+
+                      <small>
+
+                        {uploadedPdf
+
+                          ? "Reading uploaded PDF..."
+
+                          : "Searching knowledge base..."}
+
+                      </small>
+
+
 
                     </div>
 
+
+
                   </div>
 
+
+
                 </div>
+
+
 
               </div>
 
             )}
 
+
+
           </section>
 
+
+
         </main>
+
+
 
       </div>
 
 
+
+      {/* INPUT */}
 
       <footer
 
@@ -1249,15 +2007,133 @@ function ChatApp({ user, onLogout }) {
 
       >
 
+
+
         <div className="input-glow"></div>
 
 
 
         <div className="input-wrapper glass">
 
-          <div className="input-icon">✦</div>
 
 
+          {/* Hidden file input */}
+
+          <input
+
+            ref={fileInputRef}
+
+            type="file"
+
+            accept=".pdf,application/pdf"
+
+            onChange={handlePdfUpload}
+
+            style={{ display: "none" }}
+
+          />
+
+
+
+          {/* Uploaded PDF */}
+
+          {uploadedPdf && (
+
+            <div className="uploaded-pdf">
+
+
+
+              <span className="uploaded-pdf-icon">
+
+                📄
+
+              </span>
+
+
+
+              <div className="uploaded-pdf-info">
+
+
+
+                <strong>
+
+                  {uploadedPdf.filename}
+
+                </strong>
+
+
+
+                <small>
+
+                  {uploadedPdf.pages} pages •{" "}
+
+                  {uploadedPdf.chunks} chunks
+
+                </small>
+
+
+
+              </div>
+
+
+
+              <button
+
+                type="button"
+
+                className="uploaded-pdf-remove"
+
+                onClick={removeUploadedPdf}
+
+                title="Remove PDF"
+
+              >
+
+                ×
+
+              </button>
+
+
+
+            </div>
+
+          )}
+
+
+
+          {/* Plus button */}
+
+          <button
+
+            type="button"
+
+            className="pdf-upload-button"
+
+            onClick={() =>
+
+              fileInputRef.current?.click()
+
+            }
+
+            disabled={
+
+              loading || uploadingPdf
+
+            }
+
+            title="Upload PDF"
+
+            aria-label="Upload PDF"
+
+          >
+
+            {uploadingPdf ? "…" : "+"}
+
+          </button>
+
+
+
+          {/* Text input */}
 
           <textarea
 
@@ -1271,7 +2147,15 @@ function ChatApp({ user, onLogout }) {
 
             onKeyDown={handleKeyDown}
 
-            placeholder="Ask LDRP AI anything..."
+            placeholder={
+
+              uploadedPdf
+
+                ? `Ask about ${uploadedPdf.filename}...`
+
+                : "Ask LDRP AI anything..."
+
+            }
 
             rows="1"
 
@@ -1281,13 +2165,21 @@ function ChatApp({ user, onLogout }) {
 
 
 
+          {/* Send */}
+
           <button
 
             className="send-button"
 
             onClick={() => sendMessage()}
 
-            disabled={!question.trim() || loading}
+            disabled={
+
+              !question.trim() ||
+
+              loading
+
+            }
 
           >
 
@@ -1295,17 +2187,27 @@ function ChatApp({ user, onLogout }) {
 
           </button>
 
+
+
         </div>
 
 
 
         <p>
 
-          LDRP-ITR AI • Powered by RAG & Gemini • Enter to send
+          {uploadedPdf
+
+            ? "PDF Chat • Answers are based on your uploaded document"
+
+            : "LDRP-ITR AI • Powered by RAG & Gemini • Enter to send"}
 
         </p>
 
+
+
       </footer>
+
+
 
     </div>
 
@@ -1315,165 +2217,422 @@ function ChatApp({ user, onLogout }) {
 
 
 
+// ---------------------------------------------------------
+
+// MAIN APP
+
+// ---------------------------------------------------------
+
+
+
 function App() {
-  const [screen, setScreen] = useState("checking");
+
+  const [screen, setScreen] =
+
+    useState("checking");
+
+
+
   const [user, setUser] = useState(null);
 
+
+
   useEffect(() => {
+
     const checkAuthentication = async () => {
-      // Password reset links are handled before normal auth.
-      const params = new URLSearchParams(window.location.search);
-      const resetToken = params.get("reset_token");
+
+
+
+      // Password reset links
+
+      const params = new URLSearchParams(
+
+        window.location.search
+
+      );
+
+
+
+      const resetToken =
+
+        params.get("reset_token");
+
+
 
       if (resetToken) {
+
         setScreen("reset");
+
         return;
+
       }
+
+
 
       const token = getStoredToken();
 
+
+
       if (!token) {
+
         setScreen("login");
+
         return;
+
       }
 
+
+
       try {
-        const response = await fetch(`${AUTH_API}/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+
+        const response = await fetch(
+
+          `${AUTH_API}/me`,
+
+          {
+
+            headers: {
+
+              Authorization: `Bearer ${token}`,
+
+            },
+
+          }
+
+        );
+
+
 
         if (!response.ok) {
+
           clearAuth();
+
           setUser(null);
+
           setScreen("login");
+
           return;
+
         }
+
+
 
         const data = await response.json();
 
+
+
         const currentUser = {
+
           id: data.id,
+
           name: data.name,
+
           email: data.email,
+
         };
 
-        // Keep the user record in whichever storage contains the token.
-        const remembered = localStorage.getItem("access_token");
-        const storage = remembered ? localStorage : sessionStorage;
 
-        storage.setItem(
-          "user",
-          JSON.stringify(currentUser)
-        );
 
-        setUser(currentUser);
-        setScreen("chat");
-      } catch {
-        clearAuth();
-        setUser(null);
-        setScreen("login");
-      }
-    };
+        const remembered =
 
-    checkAuthentication();
-  }, []);
+          localStorage.getItem(
 
-  const handleLogin = (loginData) => {
-    setUser(loginData);
-    setScreen("chat");
-  };
+            "access_token"
 
-  const handleSignup = (signupData) => {
-    setUser(signupData);
-    setScreen("chat");
-  };
-
-  const handleLogout = () => {
-    clearAuth();
-    setUser(null);
-    setScreen("login");
-  };
-
-  if (screen === "checking") {
-    return (
-      <div className="auth-page">
-        <div className="auth-card">
-          <div className="auth-logo">
-            <div className="auth-logo-orb">◈</div>
-            <div>
-              <h1>LDRP AI</h1>
-              <span>Academic Assistant</span>
-            </div>
-          </div>
-
-          <div className="auth-heading">
-            <h2>Checking session...</h2>
-            <p>
-              Please wait while we verify your account.
-            </p>
-          </div>
-
-          <div
-            className="auth-submit"
-            style={{ cursor: "default" }}
-          >
-            <span className="auth-spinner" />
-            Loading...
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (screen === "reset") {
-    const params = new URLSearchParams(
-      window.location.search
-    );
-
-    const resetToken = params.get("reset_token");
-
-    return (
-      <ResetPassword
-        resetToken={resetToken}
-        onBackToLogin={() => {
-          window.history.replaceState(
-            {},
-            document.title,
-            window.location.pathname
           );
 
-          setScreen("login");
-        }}
-      />
+
+
+        const storage = remembered
+
+          ? localStorage
+
+          : sessionStorage;
+
+
+
+        storage.setItem(
+
+          "user",
+
+          JSON.stringify(currentUser)
+
+        );
+
+
+
+        setUser(currentUser);
+
+        setScreen("chat");
+
+
+
+      } catch {
+
+        clearAuth();
+
+        setUser(null);
+
+        setScreen("login");
+
+      }
+
+    };
+
+
+
+    checkAuthentication();
+
+  }, []);
+
+
+
+  const handleLogin = (loginData) => {
+
+    setUser(loginData);
+
+    setScreen("chat");
+
+  };
+
+
+
+  const handleSignup = (signupData) => {
+
+    setUser(signupData);
+
+    setScreen("chat");
+
+  };
+
+
+
+  const handleLogout = () => {
+
+    clearAuth();
+
+    setUser(null);
+
+    setScreen("login");
+
+  };
+
+
+
+  // Checking
+
+  if (screen === "checking") {
+
+    return (
+
+      <div className="auth-page">
+
+
+
+        <div className="auth-card">
+
+
+
+          <div className="auth-logo">
+
+
+
+            <div className="auth-logo-orb">
+
+              ◈
+
+            </div>
+
+
+
+            <div>
+
+              <h1>LDRP AI</h1>
+
+              <span>
+
+                Academic Assistant
+
+              </span>
+
+            </div>
+
+
+
+          </div>
+
+
+
+          <div className="auth-heading">
+
+
+
+            <h2>Checking session...</h2>
+
+
+
+            <p>
+
+              Please wait while we verify
+
+              your account.
+
+            </p>
+
+
+
+          </div>
+
+
+
+          <div
+
+            className="auth-submit"
+
+            style={{
+
+              cursor: "default",
+
+            }}
+
+          >
+
+            <span className="auth-spinner" />
+
+            Loading...
+
+          </div>
+
+
+
+        </div>
+
+
+
+      </div>
+
     );
+
   }
+
+
+
+  // Reset password
+
+  if (screen === "reset") {
+
+
+
+    const params = new URLSearchParams(
+
+      window.location.search
+
+    );
+
+
+
+    const resetToken =
+
+      params.get("reset_token");
+
+
+
+    return (
+
+      <ResetPassword
+
+        resetToken={resetToken}
+
+        onBackToLogin={() => {
+
+          window.history.replaceState(
+
+            {},
+
+            document.title,
+
+            window.location.pathname
+
+          );
+
+
+
+          setScreen("login");
+
+        }}
+
+      />
+
+    );
+
+  }
+
+
+
+  // Login
 
   if (screen === "login") {
+
     return (
+
       <Login
+
         onLogin={handleLogin}
-        onShowSignup={() => setScreen("signup")}
+
+        onShowSignup={() =>
+
+          setScreen("signup")
+
+        }
+
       />
+
     );
+
   }
+
+
+
+  // Signup
 
   if (screen === "signup") {
+
     return (
+
       <Signup
+
         onSignup={handleSignup}
-        onShowLogin={() => setScreen("login")}
+
+        onShowLogin={() =>
+
+          setScreen("login")
+
+        }
+
       />
+
     );
+
   }
 
+
+
+  // Chat
+
   return (
+
     <ChatApp
+
       user={user || getSavedUser()}
+
       onLogout={handleLogout}
+
     />
+
   );
+
 }
+
+
 
 export default App;
