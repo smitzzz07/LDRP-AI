@@ -199,14 +199,36 @@ def verify_captcha(
     response_model=CaptchaResponse,
 )
 def get_captcha():
+    import time
 
-    question, token = create_captcha()
+    start = time.perf_counter()
+    print("[CAPTCHA] Request received", flush=True)
 
-    return CaptchaResponse(
-        question=question,
-        captcha_token=token,
-    )
+    try:
+        question, token = create_captcha()
+        print(
+            f"[CAPTCHA] Token generated in "
+            f"{time.perf_counter() - start:.4f}s",
+            flush=True,
+        )
 
+        result = CaptchaResponse(
+            question=question,
+            captcha_token=token,
+        )
+
+        print(
+            f"[CAPTCHA] Completed in "
+            f"{time.perf_counter() - start:.4f}s",
+            flush=True,
+        )
+
+        return result
+
+    except Exception:
+        import traceback
+        traceback.print_exc()
+        raise
 
 # ============================================================
 # ACCESS TOKEN

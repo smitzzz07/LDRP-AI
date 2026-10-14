@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import "./App.css";
+import "./LDRP_App_chatgpt_pdf_card.css";
 
 
 
@@ -144,7 +145,7 @@ function ChatApp({ user, onLogout }) {
 
   const fileInputRef = useRef(null);
 
-
+  const [pdfAttachmentSent, setPdfAttachmentSent] = useState(false);
 
   const [expandedSources, setExpandedSources] = useState({});
 
@@ -337,6 +338,7 @@ function ChatApp({ user, onLogout }) {
       // Uploaded PDF belongs to the current temporary session.
 
       setUploadedPdf(null);
+      setPdfAttachmentSent(false);
 
     } catch {
 
@@ -370,6 +372,7 @@ function ChatApp({ user, onLogout }) {
     }
 
     setUploadingPdf(true);
+    setPdfAttachmentSent(false);
 
     // Show the selected filename immediately.
     setUploadedPdf({
@@ -414,17 +417,7 @@ function ChatApp({ user, onLogout }) {
 
       setStarted(true);
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content:
-            `📄 ${data.filename || file.name} uploaded successfully.\n\n` +
-            `Pages: ${data.pages ?? "N/A"}\n` +
-            `Text chunks: ${data.chunks ?? "N/A"}\n\n` +
-            `You can now ask questions about this PDF.`,
-        },
-      ]);
+      // The selected PDF stays in the composer until the user sends a question.
     } catch (error) {
       setUploadedPdf(null);
 
@@ -457,27 +450,8 @@ function ChatApp({ user, onLogout }) {
 
 
   const removeUploadedPdf = () => {
-
     setUploadedPdf(null);
-
-
-
-    setMessages((prev) => [
-
-      ...prev,
-
-      {
-
-        role: "assistant",
-
-        content:
-
-          "📄 Uploaded PDF removed. You are now chatting with the main LDRP knowledge base.",
-
-      },
-
-    ]);
-
+    setPdfAttachmentSent(false);
   };
 
 
@@ -496,26 +470,27 @@ function ChatApp({ user, onLogout }) {
 
 
 
-    if (!userQuestion || loading) return;
+    if (!userQuestion || loading || uploadingPdf) return;
 
-
+    // Move the selected PDF into the first user message, like ChatGPT.
+    const attachmentForMessage =
+      uploadedPdf && !pdfAttachmentSent
+        ? { ...uploadedPdf }
+        : null;
 
     setStarted(true);
 
-
+    if (attachmentForMessage) {
+      setPdfAttachmentSent(true);
+    }
 
     setMessages((prev) => [
-
       ...prev,
-
       {
-
         role: "user",
-
         content: userQuestion,
-
+        attachment: attachmentForMessage,
       },
-
     ]);
 
 
@@ -778,6 +753,7 @@ function ChatApp({ user, onLogout }) {
     // Clear temporary uploaded PDF.
 
     setUploadedPdf(null);
+    setPdfAttachmentSent(false);
 
 
 
@@ -1661,10 +1637,67 @@ function ChatApp({ user, onLogout }) {
 
 
 
+                      {message.role === "user" && message.attachment && (
+                        <div
+                          className="message-pdf-attachment"
+                          title={message.attachment.filename}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "10px",
+                            padding: "10px 12px",
+                            marginBottom: "10px",
+                            maxWidth: "280px",
+                            border: "1px solid rgba(196, 166, 255, 0.28)",
+                            borderRadius: "12px",
+                            background: "rgba(255, 255, 255, 0.08)",
+                          }}
+                        >
+                          <div
+                            aria-hidden="true"
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              flex: "0 0 38px",
+                              height: "44px",
+                              borderRadius: "8px",
+                              background: "#e9d5ff",
+                              color: "#5b21b6",
+                              fontSize: "11px",
+                              fontWeight: 800,
+                            }}
+                          >
+                            PDF
+                          </div>
+                          <div
+                            style={{
+                              minWidth: 0,
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "4px",
+                            }}
+                          >
+                            <strong
+                              style={{
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                                fontSize: "12px",
+                                maxWidth: "205px",
+                              }}
+                            >
+                              {message.attachment.filename}
+                            </strong>
+                            <small style={{ opacity: 0.72, fontSize: "11px" }}>
+                              {message.attachment.pages ?? "—"} pages
+                            </small>
+                          </div>
+                        </div>
+                      )}
+
                       <div className="answer-text">
-
                         {message.content}
-
                       </div>
 
 
@@ -2013,182 +2046,81 @@ function ChatApp({ user, onLogout }) {
 
 
 
-        <div className="input-wrapper glass">
+        <div className={`input-wrapper glass ${uploadedPdf ? "has-attachment" : ""}`}>
 
-
-
-          {/* Hidden file input */}
-
+          {/* Hidden PDF picker */}
           <input
-
             ref={fileInputRef}
-
             type="file"
-
             accept=".pdf,application/pdf"
-
             onChange={handlePdfUpload}
-
             style={{ display: "none" }}
-
           />
 
+          {/* Keep the attachment in the composer until its first question is sent. */}
+          {uploadedPdf && !pdfAttachmentSent && (
+            <div className="composer-attachment-row">
+              <div className="uploaded-pdf" title={uploadedPdf.filename}>
+                <div className="uploaded-pdf-icon" aria-hidden="true">
+                  <span className="pdf-icon-fold">PDF</span>
+                </div>
 
+                <div className="uploaded-pdf-info">
+                  <strong>{uploadedPdf.filename}</strong>
+                  <small>
+                    {uploadingPdf
+                      ? "Uploading and reading PDF…"
+                      : `${uploadedPdf.pages ?? "—"} pages · ${uploadedPdf.chunks ?? "—"} text chunks`}
+                  </small>
+                </div>
 
-          {/* Uploaded PDF */}
+                {uploadingPdf && <span className="pdf-upload-status" aria-label="Uploading" />}
 
-          {uploadedPdf && (
-
-            <div className="uploaded-pdf">
-
-
-
-              <span className="uploaded-pdf-icon">
-
-                📄
-
-              </span>
-
-
-
-              <div className="uploaded-pdf-info">
-
-
-
-                <strong>
-
-                  {uploadedPdf.filename}
-
-                </strong>
-
-
-
-                <small>
-
-                  {uploadedPdf.pages} pages •{" "}
-
-                  {uploadedPdf.chunks} chunks
-
-                </small>
-
-
-
+                <button
+                  type="button"
+                  className="uploaded-pdf-remove"
+                  onClick={removeUploadedPdf}
+                  disabled={uploadingPdf || loading}
+                  title="Remove PDF"
+                  aria-label="Remove uploaded PDF"
+                >
+                  ×
+                </button>
               </div>
-
-
-
-              <button
-
-                type="button"
-
-                className="uploaded-pdf-remove"
-
-                onClick={removeUploadedPdf}
-
-                title="Remove PDF"
-
-              >
-
-                ×
-
-              </button>
-
-
-
             </div>
-
           )}
 
+          {/* Composer controls stay on their own row below the attachment */}
+          <div className="composer-input-row">
+            <button
+              type="button"
+              className="pdf-upload-button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={loading || uploadingPdf}
+              title="Upload PDF"
+              aria-label="Upload PDF"
+            >
+              {uploadingPdf ? "…" : "+"}
+            </button>
 
+            <textarea
+              value={question}
+              onChange={(event) => setQuestion(event.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask LDRP AI anything..."
+              rows="1"
+              disabled={loading}
+            />
 
-          {/* Plus button */}
-
-          <button
-
-            type="button"
-
-            className="pdf-upload-button"
-
-            onClick={() =>
-
-              fileInputRef.current?.click()
-
-            }
-
-            disabled={
-
-              loading || uploadingPdf
-
-            }
-
-            title="Upload PDF"
-
-            aria-label="Upload PDF"
-
-          >
-
-            {uploadingPdf ? "…" : "+"}
-
-          </button>
-
-
-
-          {/* Text input */}
-
-          <textarea
-
-            value={question}
-
-            onChange={(event) =>
-
-              setQuestion(event.target.value)
-
-            }
-
-            onKeyDown={handleKeyDown}
-
-            placeholder={
-
-              uploadedPdf
-
-                ? `Ask about ${uploadedPdf.filename}...`
-
-                : "Ask LDRP AI anything..."
-
-            }
-
-            rows="1"
-
-            disabled={loading}
-
-          />
-
-
-
-          {/* Send */}
-
-          <button
-
-            className="send-button"
-
-            onClick={() => sendMessage()}
-
-            disabled={
-
-              !question.trim() ||
-
-              loading
-
-            }
-
-          >
-
-            <span>↑</span>
-
-          </button>
-
-
-
+            <button
+              className="send-button"
+              onClick={() => sendMessage()}
+              disabled={!question.trim() || loading || uploadingPdf}
+              aria-label="Send message"
+            >
+              <span>↑</span>
+            </button>
+          </div>
         </div>
 
 
@@ -2285,21 +2217,23 @@ function App() {
 
       try {
 
-        const response = await fetch(
+   
+const controller = new AbortController();
+const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-          `${AUTH_API}/me`,
+let response;
 
-          {
+try {
+  response = await fetch(`${AUTH_API}/me`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    signal: controller.signal,
+  });
+} finally {
+  clearTimeout(timeoutId);
+}
 
-            headers: {
-
-              Authorization: `Bearer ${token}`,
-
-            },
-
-          }
-
-        );
 
 
 

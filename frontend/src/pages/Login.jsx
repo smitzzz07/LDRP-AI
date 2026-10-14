@@ -1,7 +1,53 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import "../Auth.css";
 
 const AUTH_API = "http://127.0.0.1:8000/api/auth";
+const REQUEST_TIMEOUT_MS = 10000;
+
+async function fetchJsonWithTimeout(url, options = {}, timeoutMs = REQUEST_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+
+    let data = {};
+    try {
+      data = await response.json();
+    } catch {
+      // Keep an empty object if the server returns an empty/non-JSON response.
+    }
+
+    if (!response.ok) {
+      const detail =
+        typeof data.detail === "string"
+          ? data.detail
+          : typeof data.message === "string"
+            ? data.message
+            : `Request failed (${response.status}).`;
+      throw new Error(detail);
+    }
+
+    return data;
+  } catch (error) {
+    if (error.name === "AbortError") {
+      throw new Error("The server took too long to respond. Please try again.");
+    }
+
+    if (error instanceof TypeError) {
+      throw new Error(
+        "Cannot connect to the server. Make sure the LDRP backend is running."
+      );
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
 export default function Login({ onLogin, onShowSignup }) {
   const [email, setEmail] = useState("");
@@ -10,12 +56,13 @@ export default function Login({ onLogin, onShowSignup }) {
   const [captchaAnswer, setCaptchaAnswer] = useState("");
   const [captchaToken, setCaptchaToken] = useState("");
   const [captchaQuestion, setCaptchaQuestion] = useState("");
+  const [captchaLoading, setCaptchaLoading] = useState(true);
+  const [captchaError, setCaptchaError] = useState("");
 
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const [loading, setLoading] = useState(false);
-  const [captchaLoading, setCaptchaLoading] = useState(false);
   const [error, setError] = useState("");
 
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -24,31 +71,47 @@ export default function Login({ onLogin, onShowSignup }) {
   const [forgotMessage, setForgotMessage] = useState("");
   const [forgotSuccess, setForgotSuccess] = useState(false);
 
-  const loadCaptcha = async () => {
+  const captchaRequestId = useRef(0);
+
+  const loadCaptcha = useCallback(async () => {
+    const requestId = ++captchaRequestId.current;
+
     setCaptchaLoading(true);
+    setCaptchaError("");
     setCaptchaAnswer("");
+    setCaptchaToken("");
+    setCaptchaQuestion("");
     setError("");
 
     try {
-      const response = await fetch(`${AUTH_API}/captcha`);
-      const data = await response.json();
+      const data = await fetchJsonWithTimeout(`${AUTH_API}/captcha`);
 
-      if (!response.ok) {
-        throw new Error(data.detail || "Unable to load CAPTCHA.");
+      // Ignore an older request if the user refreshed the CAPTCHA again.
+      if (requestId !== captchaRequestId.current) return;
+
+      if (!data.question || !data.captcha_token) {
+        throw new Error("The server returned an invalid CAPTCHA. Please refresh.");
       }
 
-      setCaptchaQuestion(data.question);
-      setCaptchaToken(data.captcha_token);
+      setCaptchaQuestion(String(data.question));
+      setCaptchaToken(String(data.captcha_token));
     } catch (err) {
-      setError(err.message || "Unable to load CAPTCHA. Please try again.");
+      if (requestId !== captchaRequestId.current) return;
+      setCaptchaError(err.message || "Unable to load CAPTCHA. Please refresh.");
     } finally {
-      setCaptchaLoading(false);
+      if (requestId === captchaRequestId.current) {
+        setCaptchaLoading(false);
+      }
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadCaptcha();
-  }, []);
+    return () => {
+      // Invalidate pending CAPTCHA responses when this screen unmounts.
+      captchaRequestId.current += 1;
+    };
+  }, [loadCaptcha]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -59,24 +122,22 @@ export default function Login({ onLogin, onShowSignup }) {
       return;
     }
 
-    if (!captchaAnswer.trim()) {
-      setError("Please enter the CAPTCHA answer.");
+    if (!captchaToken || captchaLoading) {
+      setError("CAPTCHA is not ready. Please refresh it and try again.");
       return;
     }
 
-    if (!captchaToken) {
-      setError("CAPTCHA is not ready. Please refresh it.");
+    if (!captchaAnswer.trim()) {
+      setError("Please enter the CAPTCHA answer.");
       return;
     }
 
     setLoading(true);
 
     try {
-      const response = await fetch(`${AUTH_API}/login`, {
+      const data = await fetchJsonWithTimeout(`${AUTH_API}/login`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: email.trim(),
           password,
@@ -86,10 +147,8 @@ export default function Login({ onLogin, onShowSignup }) {
         }),
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || "Invalid email or password.");
+      if (!data.access_token) {
+        throw new Error("Login response did not include an access token.");
       }
 
       const user = {
@@ -112,7 +171,8 @@ export default function Login({ onLogin, onShowSignup }) {
 
       onLogin?.(user);
     } catch (err) {
-      setError(err.message || "Unable to connect to the server.");
+      setError(err.message || "Unable to sign in. Please try again.");
+      // CAPTCHA challenges are commonly single-use, so load a fresh one.
       loadCaptcha();
     } finally {
       setLoading(false);
@@ -132,23 +192,11 @@ export default function Login({ onLogin, onShowSignup }) {
     setForgotLoading(true);
 
     try {
-      const response = await fetch(`${AUTH_API}/forgot-password`, {
+      const data = await fetchJsonWithTimeout(`${AUTH_API}/forgot-password`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: forgotEmail.trim(),
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: forgotEmail.trim() }),
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.detail || "Unable to process password reset request."
-        );
-      }
 
       setForgotMessage(
         data.message ||
@@ -198,39 +246,33 @@ export default function Login({ onLogin, onShowSignup }) {
 
           <div className="auth-heading">
             <h2>Forgot Password</h2>
-            <p>
-              Enter your registered email address to reset your password.
-            </p>
+            <p>Enter your registered email address to reset your password.</p>
           </div>
 
           <form onSubmit={handleForgotPassword} className="auth-form">
             <div className="form-group">
-              <label>Email Address</label>
+              <label htmlFor="forgot-email">Email Address</label>
               <div className="auth-input-wrapper">
-                <span className="auth-input-icon">✉</span>
+                <span className="auth-input-icon" aria-hidden="true">✉</span>
                 <input
+                  id="forgot-email"
                   type="email"
                   placeholder="you@example.com"
                   value={forgotEmail}
                   onChange={(event) => setForgotEmail(event.target.value)}
                   autoComplete="email"
+                  required
                 />
               </div>
             </div>
 
             {forgotMessage && (
-              <div
-                className={forgotSuccess ? "auth-success" : "auth-error"}
-              >
+              <div className={forgotSuccess ? "auth-success" : "auth-error"} role="status">
                 {forgotMessage}
               </div>
             )}
 
-            <button
-              type="submit"
-              className="auth-submit"
-              disabled={forgotLoading}
-            >
+            <button type="submit" className="auth-submit" disabled={forgotLoading}>
               {forgotLoading ? "Sending..." : "Send Reset Request"}
             </button>
           </form>
@@ -273,34 +315,39 @@ export default function Login({ onLogin, onShowSignup }) {
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
-            <label>Email Address</label>
+            <label htmlFor="login-email">Email Address</label>
             <div className="auth-input-wrapper">
-              <span className="auth-input-icon">✉</span>
+              <span className="auth-input-icon" aria-hidden="true">✉</span>
               <input
+                id="login-email"
                 type="email"
                 placeholder="you@example.com"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 autoComplete="email"
+                required
               />
             </div>
           </div>
 
           <div className="form-group">
-            <label>Password</label>
+            <label htmlFor="login-password">Password</label>
             <div className="auth-input-wrapper">
-              <span className="auth-input-icon">⌑</span>
+              <span className="auth-input-icon" aria-hidden="true">⌑</span>
               <input
+                id="login-password"
                 type={showPassword ? "text" : "password"}
                 placeholder="Enter your password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 autoComplete="current-password"
+                required
               />
               <button
                 type="button"
                 className="password-toggle"
                 onClick={() => setShowPassword((value) => !value)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? "Hide" : "Show"}
               </button>
@@ -310,14 +357,9 @@ export default function Login({ onLogin, onShowSignup }) {
           <div className="form-group">
             <label>Security Verification</label>
 
-            <div
-              style={{
-                display: "flex",
-                gap: "10px",
-                alignItems: "center",
-              }}
-            >
+            <div style={{ display: "flex", gap: "10px", alignItems: "stretch" }}>
               <div
+                aria-live="polite"
                 style={{
                   flex: 1,
                   minHeight: "48px",
@@ -330,9 +372,15 @@ export default function Login({ onLogin, onShowSignup }) {
                   fontWeight: "700",
                   fontSize: "18px",
                   letterSpacing: "2px",
+                  padding: "10px",
+                  textAlign: "center",
                 }}
               >
-                {captchaLoading ? "Loading..." : captchaQuestion}
+                {captchaLoading
+                  ? "Loading..."
+                  : captchaError
+                    ? "CAPTCHA unavailable"
+                    : captchaQuestion || "Refresh CAPTCHA"}
               </div>
 
               <button
@@ -340,32 +388,39 @@ export default function Login({ onLogin, onShowSignup }) {
                 onClick={loadCaptcha}
                 disabled={captchaLoading}
                 style={{
-                  height: "48px",
-                  width: "48px",
+                  minHeight: "48px",
+                  width: "60px",
                   borderRadius: "10px",
                   border: "1px solid rgba(255,255,255,0.15)",
                   background: "rgba(255,255,255,0.05)",
                   color: "inherit",
                   cursor: captchaLoading ? "not-allowed" : "pointer",
                   fontSize: "20px",
+                  opacity: captchaLoading ? 0.6 : 1,
                 }}
                 title="Refresh CAPTCHA"
+                aria-label="Refresh CAPTCHA"
               >
                 ↻
               </button>
             </div>
 
-            <div
-              className="auth-input-wrapper"
-              style={{ marginTop: "10px" }}
-            >
-              <span className="auth-input-icon">#</span>
+            {captchaError && (
+              <div className="auth-error" role="alert" style={{ marginTop: "8px" }}>
+                {captchaError}
+              </div>
+            )}
+
+            <div className="auth-input-wrapper" style={{ marginTop: "10px" }}>
+              <span className="auth-input-icon" aria-hidden="true">#</span>
               <input
                 type="text"
                 placeholder="Enter CAPTCHA answer"
                 value={captchaAnswer}
                 onChange={(event) => setCaptchaAnswer(event.target.value)}
                 autoComplete="off"
+                disabled={!captchaToken || captchaLoading}
+                required
               />
             </div>
           </div>
@@ -380,21 +435,17 @@ export default function Login({ onLogin, onShowSignup }) {
               <span>Remember me</span>
             </label>
 
-            <button
-              type="button"
-              className="forgot-password"
-              onClick={openForgotPassword}
-            >
+            <button type="button" className="forgot-password" onClick={openForgotPassword}>
               Forgot password?
             </button>
           </div>
 
-          {error && <div className="auth-error">{error}</div>}
+          {error && <div className="auth-error" role="alert">{error}</div>}
 
           <button
             type="submit"
             className="auth-submit"
-            disabled={loading || captchaLoading}
+            disabled={loading || captchaLoading || !captchaToken}
           >
             {loading ? (
               <>
