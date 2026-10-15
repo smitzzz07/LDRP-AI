@@ -2,6 +2,37 @@
   box-sizing: border-box;
 }
 
+/* Global font size: increase rem-based typography by 2px */
+html {
+  font-size: calc(100% + 2px);
+}
+
+body {
+  font-size: 1rem;
+}
+
+/* Increase sidebar text by 2px */
+.chat-history,
+.chat-history button,
+.chat-history input,
+.chat-history a,
+.chat-history p,
+.chat-history span,
+.chat-history li {
+  font-size: calc(1em + 2px);
+}
+
+/* Chat titles */
+.chat-history .chat-title,
+.chat-history .history-item {
+  font-size: calc(1em + 2px);
+}
+
+/* User profile text */
+.chat-history .user-profile {
+  font-size: calc(1em + 2px);
+}
+
 .app {
   min-height: 100vh;
   color: #f7f5ff;

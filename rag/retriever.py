@@ -1927,6 +1927,241 @@ def ask_question(question):
         )
 
     # ========================================================
+    # FEE-TABLE CONTEXT EXPANSION
+    # ========================================================
+    # Fee tables and their explanatory notes are sometimes split
+    # across consecutive chunks. A top-K search can retrieve the
+    # chunk that introduces the fee table but omit the next chunk
+    # containing the actual amounts. For fee-related questions,
+    # include adjacent chunks from the same comprehensive guide.
+
+    normalized_question = normalize(question)
+    fee_terms = [
+        "fee", "fees", "tuition", "cost", "price", "b e",
+        "b tech", "engineering", "admission fee",
+    ]
+    is_fee_question = any(
+        term in normalized_question for term in fee_terms
+    )
+
+    if is_fee_question:
+        existing_indexes = {
+            result.get("index") for result in results
+            if result.get("index") is not None
+        }
+        expanded_results = list(results)
+
+        # Reuse one query embedding to score any adjacent chunks
+        # with the same scoring logic as normal retrieval.
+        query_embedding = model.encode(
+            [question],
+            convert_to_numpy=True,
+        ).astype("float32")
+        query_vector = query_embedding[0]
+
+        guide_name = "ldrp itr gandhinagar comprehensive guide 2026 pdf"
+
+        for result in list(results):
+            metadata = result.get("metadata", {})
+            source = str(metadata.get("source", ""))
+            source_normalized = normalize(source)
+            result_text = normalize(result.get("text", ""))
+
+            # Only expand the institute guide when a selected result
+            # is actually fee-related; do not expand unrelated PDFs.
+            if guide_name not in source_normalized:
+                continue
+            if not any(
+                term in result_text
+                for term in ("fee", "fees", "tuition", "b e", "b tech", "engineering")
+            ):
+                continue
+
+            current_index = result.get("index")
+            if not isinstance(current_index, int):
+                continue
+
+            for adjacent_index in (current_index - 1, current_index + 1):
+                if adjacent_index < 0 or adjacent_index >= len(chunks):
+                    continue
+                if adjacent_index in existing_indexes:
+                    continue
+
+                adjacent_chunk = chunks[adjacent_index]
+                adjacent_metadata = adjacent_chunk.get("metadata", {})
+                adjacent_source = str(adjacent_metadata.get("source", ""))
+
+                # Chunk indexes are only considered adjacent when they
+                # belong to exactly the same source document.
+                if adjacent_source != source:
+                    continue
+
+                adjacent_text = str(adjacent_chunk.get("text", ""))
+                if not adjacent_text.strip():
+                    continue
+
+                adjacent_result = make_candidate(
+                    adjacent_index,
+                    question,
+                    query_vector,
+                    intent,
+                )
+                if adjacent_result is None:
+                    continue
+
+                expanded_results.append(adjacent_result)
+                existing_indexes.add(adjacent_index)
+                print(
+                    f"💰 Added adjacent fee chunk: index={adjacent_index}, "
+                    f"page={adjacent_metadata.get('page')}"
+                )
+
+        if len(expanded_results) > len(results):
+            # Keep the strongest matching chunks near the top while
+            # retaining the adjacent table continuation in the context.
+            expanded_results.sort(
+                key=lambda item: item.get("final_score", 0),
+                reverse=True,
+            )
+            results = expanded_results
+            print(
+                f"💰 Fee context expansion complete: {len(results)} chunks "
+                f"will be sent to the LLM."
+            )
+
+    # ========================================================
+    # SCHOLARSHIP CONTEXT EXPANSION
+    # ========================================================
+    # Scholarship guidance is often several paragraphs/table rows in
+    # one guide section. Semantic top-K retrieval can select the guide
+    # cover/general overview instead of the actual scholarship section.
+    # Search the loaded chunks directly for scholarship-specific evidence
+    # and include matching chunks plus nearby chunks from the same PDF.
+
+    scholarship_terms = (
+        "scholarship",
+        "sebc",
+        "ddcw",
+        "mysy",
+        "mukhyamantri yuva swavalamban",
+        "cmss",
+        "chief minister scholarship",
+        "national scholarship portal",
+        "income certificate",
+        "financial assistance",
+        "post matric",
+        "post ssc",
+        "educational schemes",
+        "merit means",
+    )
+    is_scholarship_question = any(
+        term in normalized_question for term in scholarship_terms
+    )
+
+    if is_scholarship_question:
+        query_embedding = model.encode(
+            [question],
+            convert_to_numpy=True,
+        ).astype("float32")
+        query_vector = query_embedding[0]
+
+        existing_indexes = {
+            result.get("index") for result in results
+            if result.get("index") is not None
+        }
+        original_results = list(results)
+        scholarship_matches = []
+        guide_name = "ldrp itr gandhinagar comprehensive guide 2026 pdf"
+
+        # First identify scholarship-related chunks in the comprehensive
+        # guide. Keep the matching source grounded in the actual metadata.
+        for chunk_index, chunk in enumerate(chunks):
+            metadata = chunk.get("metadata", {})
+            source = str(metadata.get("source", ""))
+            if guide_name not in normalize(source):
+                continue
+
+            chunk_text = str(chunk.get("text", ""))
+            normalized_chunk_text = normalize(chunk_text)
+            if not any(term in normalized_chunk_text for term in scholarship_terms):
+                continue
+
+            candidate = make_candidate(
+                chunk_index,
+                question,
+                query_vector,
+                intent,
+            )
+            if candidate is None:
+                continue
+
+            # Prioritize explicit scholarship evidence over generic guide
+            # chunks. This changes ranking only, not the source text.
+            candidate["final_score"] += 25
+            candidate["intent_boost"] = candidate.get("intent_boost", 0) + 25
+            scholarship_matches.append(candidate)
+
+        # Include one adjacent chunk on either side of each match, but
+        # only when it belongs to the same source document. This protects
+        # section headings, table continuations, and explanatory notes.
+        additions = {}
+        for candidate in scholarship_matches:
+            source = str(candidate.get("metadata", {}).get("source", ""))
+            match_index = candidate.get("index")
+            for nearby_index in (match_index - 1, match_index + 1):
+                if nearby_index < 0 or nearby_index >= len(chunks):
+                    continue
+                if nearby_index in existing_indexes or nearby_index in additions:
+                    continue
+
+                nearby_chunk = chunks[nearby_index]
+                nearby_metadata = nearby_chunk.get("metadata", {})
+                if str(nearby_metadata.get("source", "")) != source:
+                    continue
+                if not str(nearby_chunk.get("text", "")).strip():
+                    continue
+
+                nearby_candidate = make_candidate(
+                    nearby_index,
+                    question,
+                    query_vector,
+                    intent,
+                )
+                if nearby_candidate is not None:
+                    additions[nearby_index] = nearby_candidate
+
+        # Keep existing top results and add up to 12 section-specific
+        # chunks. This avoids sending an entire PDF to the language model.
+        scholarship_matches.sort(
+            key=lambda item: item.get("final_score", 0),
+            reverse=True,
+        )
+        selected_topic_results = []
+        for candidate in scholarship_matches:
+            if candidate["index"] not in existing_indexes:
+                selected_topic_results.append(candidate)
+                existing_indexes.add(candidate["index"])
+            if len(selected_topic_results) >= 8:
+                break
+
+        for candidate in sorted(additions.values(), key=lambda item: item["index"]):
+            if candidate["index"] not in existing_indexes and len(selected_topic_results) < 12:
+                selected_topic_results.append(candidate)
+                existing_indexes.add(candidate["index"])
+
+        if selected_topic_results:
+            results = original_results + selected_topic_results
+            print(
+                "🎓 Scholarship context expansion: added "
+                f"{len(selected_topic_results)} scholarship/neighbor chunks; "
+                f"{len(results)} total chunks will be sent to the LLM."
+            )
+        else:
+            print(
+                "⚠️ No scholarship-specific chunks found in the comprehensive guide."
+            )
+
+    # ========================================================
     # BUILD CONTEXT
     # ========================================================
 
