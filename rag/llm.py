@@ -1,5 +1,6 @@
+
 import os
-import time
+import requests
 
 from dotenv import load_dotenv
 from google import genai
@@ -17,24 +18,24 @@ load_dotenv()
 # 2. API Keys
 # ==================================================
 
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 
 # ==================================================
-# 3. Gemini Configuration
+# 3. Model Configuration
 # ==================================================
+
+OPENROUTER_MODEL = os.getenv(
+    "OPENROUTER_MODEL",
+    "openai/gpt-oss-20b"
+)
 
 GEMINI_MODEL = os.getenv(
     "GEMINI_MODEL",
     "gemini-3.6-flash"
 )
-
-
-# ==================================================
-# 4. Groq Configuration
-# ==================================================
 
 GROQ_MODEL = os.getenv(
     "GROQ_MODEL",
@@ -43,28 +44,16 @@ GROQ_MODEL = os.getenv(
 
 
 # ==================================================
-# 5. OpenRouter Configuration
-# ==================================================
-
-OPENROUTER_MODEL = os.getenv(
-    "OPENROUTER_MODEL",
-    "openai/gpt-oss-20b"
-)
-
-
-# ==================================================
-# 6. Create clients
+# 4. Create API Clients
 # ==================================================
 
 gemini_client = None
 groq_client = None
 
-
 if GEMINI_API_KEY:
     gemini_client = genai.Client(
         api_key=GEMINI_API_KEY
     )
-
 
 if GROQ_API_KEY:
     groq_client = Groq(
@@ -73,160 +62,15 @@ if GROQ_API_KEY:
 
 
 # ==================================================
-# 7. Generate with Gemini
-# ==================================================
-
-def generate_with_gemini(prompt):
-    """
-    Generate an answer using Gemini.
-
-    Gemini is the primary LLM.
-    """
-
-    if not gemini_client:
-        raise RuntimeError(
-            "GEMINI_API_KEY is not configured."
-        )
-
-    max_retries = 3
-
-    for attempt in range(1, max_retries + 1):
-
-        try:
-
-            print(
-                f"\n🟣 Gemini request "
-                f"(attempt {attempt}/{max_retries})..."
-            )
-
-            response = gemini_client.models.generate_content(
-                model=GEMINI_MODEL,
-                contents=prompt
-            )
-
-            if response.text:
-
-                print("✅ Gemini response received")
-
-                return response.text.strip()
-
-            raise RuntimeError(
-                "Gemini returned an empty response."
-            )
-
-        except Exception as e:
-
-            error_text = str(e)
-
-            print(
-                f"\n⚠️ Gemini failed:"
-                f"\n{type(e).__name__}: {e}"
-            )
-
-            # ------------------------------------------
-            # Rate limit / quota
-            # ------------------------------------------
-
-            if (
-                "429" in error_text
-                or "RESOURCE_EXHAUSTED" in error_text
-            ):
-
-                print(
-                    "🚫 Gemini quota/rate limit detected."
-                )
-
-                # Don't retry quota errors.
-                # Move directly to Groq.
-                raise
-
-            # ------------------------------------------
-            # Temporary server error
-            # ------------------------------------------
-
-            if (
-                "503" in error_text
-                or "UNAVAILABLE" in error_text
-                or "500" in error_text
-            ):
-
-                if attempt < max_retries:
-
-                    wait_time = attempt * 2
-
-                    print(
-                        f"⏳ Gemini temporarily unavailable."
-                        f" Retrying in {wait_time}s..."
-                    )
-
-                    time.sleep(wait_time)
-
-                    continue
-
-                raise
-
-            # ------------------------------------------
-            # Any other error
-            # ------------------------------------------
-
-            raise
-
-    raise RuntimeError(
-        "Gemini failed after all retries."
-    )
-
-
-# ==================================================
-# 8. Generate with Groq
-# ==================================================
-
-def generate_with_groq(prompt):
-    """
-    Generate an answer using Groq.
-
-    Groq is the first fallback after Gemini.
-    """
-
-    if not groq_client:
-        raise RuntimeError(
-            "GROQ_API_KEY is not configured."
-        )
-
-    print("\n🟢 Trying Groq...")
-
-    response = groq_client.chat.completions.create(
-        model=GROQ_MODEL,
-        messages=[
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ],
-        temperature=0.2,
-        max_tokens=2048,
-    )
-
-    answer = response.choices[0].message.content
-
-    if not answer:
-        raise RuntimeError(
-            "Groq returned an empty response."
-        )
-
-    print("✅ Groq response received")
-
-    return answer.strip()
-
-
-# ==================================================
-# 9. Generate with OpenRouter
+# 5. OpenRouter - PRIMARY PROVIDER
 # ==================================================
 
 def generate_with_openrouter(prompt):
     """
     Generate an answer using OpenRouter.
 
-    OpenRouter is the second LLM fallback.
+    Priority: FIRST
+    Attempts: ONE
     """
 
     if not OPENROUTER_API_KEY:
@@ -234,9 +78,8 @@ def generate_with_openrouter(prompt):
             "OPENROUTER_API_KEY is not configured."
         )
 
-    print("\n🔵 Trying OpenRouter...")
-
-    import requests
+    print("\n🔵 Trying OpenRouter (primary)...")
+    print(f"Model: {OPENROUTER_MODEL}")
 
     url = "https://openrouter.ai/api/v1/chat/completions"
 
@@ -252,18 +95,19 @@ def generate_with_openrouter(prompt):
         "messages": [
             {
                 "role": "user",
-                "content": prompt
+                "content": prompt,
             }
         ],
         "temperature": 0.2,
         "max_tokens": 2048,
     }
 
+    # Exactly one HTTP request; no retry loop.
     response = requests.post(
         url,
         headers=headers,
         json=payload,
-        timeout=60
+        timeout=60,
     )
 
     response.raise_for_status()
@@ -271,13 +115,12 @@ def generate_with_openrouter(prompt):
     data = response.json()
 
     answer = (
-        data
-        .get("choices", [{}])[0]
+        data.get("choices", [{}])[0]
         .get("message", {})
         .get("content")
     )
 
-    if not answer:
+    if not isinstance(answer, str) or not answer.strip():
         raise RuntimeError(
             "OpenRouter returned an empty response."
         )
@@ -288,147 +131,207 @@ def generate_with_openrouter(prompt):
 
 
 # ==================================================
-# 10. Main LLM fallback system
+# 6. Gemini - FIRST FALLBACK
+# ==================================================
+
+def generate_with_gemini(prompt):
+    """
+    Generate an answer using Gemini.
+
+    Priority: SECOND
+    Attempts: ONE
+    """
+
+    if not gemini_client:
+        raise RuntimeError(
+            "GEMINI_API_KEY is not configured."
+        )
+
+    print("\n🟣 Trying Gemini (fallback)...")
+    print(f"Model: {GEMINI_MODEL}")
+
+    # Exactly one API call; no retry loop.
+    response = gemini_client.models.generate_content(
+        model=GEMINI_MODEL,
+        contents=prompt,
+    )
+
+    answer = response.text
+
+    if not isinstance(answer, str) or not answer.strip():
+        raise RuntimeError(
+            "Gemini returned an empty response."
+        )
+
+    print("✅ Gemini response received")
+
+    return answer.strip()
+
+
+# ==================================================
+# 7. Groq - FINAL FALLBACK
+# ==================================================
+
+def generate_with_groq(prompt):
+    """
+    Generate an answer using Groq.
+
+    Priority: THIRD
+    Attempts: ONE
+    """
+
+    if not groq_client:
+        raise RuntimeError(
+            "GROQ_API_KEY is not configured."
+        )
+
+    print("\n🟢 Trying Groq (final fallback)...")
+    print(f"Model: {GROQ_MODEL}")
+
+    # Exactly one API call; no retry loop.
+    response = groq_client.chat.completions.create(
+        model=GROQ_MODEL,
+        messages=[
+            {
+                "role": "user",
+                "content": prompt,
+            }
+        ],
+        temperature=0.2,
+        max_tokens=2048,
+    )
+
+    answer = response.choices[0].message.content
+
+    if not isinstance(answer, str) or not answer.strip():
+        raise RuntimeError(
+            "Groq returned an empty response."
+        )
+
+    print("✅ Groq response received")
+
+    return answer.strip()
+
+
+# ==================================================
+# 8. Main LLM Fallback System
 # ==================================================
 
 def generate_answer(prompt):
     """
-    Automatic multi-LLM fallback system.
+    Generate an answer using the configured providers.
 
-    Priority:
+    Provider priority:
+        1. OpenRouter - one attempt
+        2. Gemini     - one attempt
+        3. Groq       - one attempt
 
-        1. Gemini
-        2. Groq
-        3. OpenRouter
+    No provider is retried by this function.
+    A provider failure immediately moves to the next one.
 
-    If all providers fail, raise an exception so the
-    retriever can decide what fallback response/context
-    should be returned.
+    This function preserves the generate_answer(prompt)
+    interface used by the RAG application.
     """
 
-    print("\n")
-    print("=" * 60)
-    print("🤖 LLM FALLBACK SYSTEM")
+    if not isinstance(prompt, str) or not prompt.strip():
+        raise ValueError(
+            "Prompt must be a non-empty string."
+        )
+
+    print("\n" + "=" * 60)
+    print("🤖 LDRP RAG LLM FALLBACK SYSTEM")
     print("=" * 60)
 
-    # ==================================================
-    # PRIMARY: GEMINI
-    # ==================================================
+    providers = [
+        (
+            "OPENROUTER",
+            OPENROUTER_API_KEY,
+            generate_with_openrouter,
+        ),
+        (
+            "GEMINI",
+            GEMINI_API_KEY,
+            generate_with_gemini,
+        ),
+        (
+            "GROQ",
+            GROQ_API_KEY,
+            generate_with_groq,
+        ),
+    ]
 
-    if GEMINI_API_KEY:
+    errors = []
+
+    for provider_name, api_key, generate_function in providers:
+
+        # Skip providers without configured API keys.
+        if not api_key:
+            message = (
+                f"{provider_name}_API_KEY is not configured."
+            )
+
+            print(f"\n⚠️ Skipping {provider_name}: {message}")
+            errors.append(f"{provider_name}: {message}")
+            continue
 
         try:
+            print(f"\n➡️ Provider: {provider_name}")
 
-            answer = generate_with_gemini(prompt)
+            answer = generate_function(prompt)
 
-            print("=" * 60)
-            print("🟣 PROVIDER USED: GEMINI")
+            print("\n" + "=" * 60)
+            print(f"✅ PROVIDER USED: {provider_name}")
             print("=" * 60)
 
             return answer
 
-        except Exception as e:
-
-            print(
-                f"\n⚠️ Gemini unavailable."
-                f"\nReason: {e}"
+        except Exception as error:
+            error_message = (
+                f"{type(error).__name__}: {error}"
             )
 
-    else:
+            print(f"\n❌ {provider_name} failed.")
+            print(f"Reason: {error_message}")
+            print("➡️ Moving to the next provider...")
 
-        print(
-            "\n⚠️ GEMINI_API_KEY not configured."
-        )
-
-
-    # ==================================================
-    # FALLBACK 1: GROQ
-    # ==================================================
-
-    if GROQ_API_KEY:
-
-        try:
-
-            answer = generate_with_groq(prompt)
-
-            print("=" * 60)
-            print("🟢 PROVIDER USED: GROQ")
-            print("=" * 60)
-
-            return answer
-
-        except Exception as e:
-
-            print(
-                f"\n⚠️ Groq unavailable."
-                f"\nReason: {e}"
+            errors.append(
+                f"{provider_name}: {error_message}"
             )
 
-    else:
-
-        print(
-            "\n⚠️ GROQ_API_KEY not configured."
-        )
-
+            # No retry. Continue to the next provider.
 
     # ==================================================
-    # FALLBACK 2: OPENROUTER
+    # All Providers Failed
     # ==================================================
 
-    if OPENROUTER_API_KEY:
-
-        try:
-
-            answer = generate_with_openrouter(prompt)
-
-            print("=" * 60)
-            print("🔵 PROVIDER USED: OPENROUTER")
-            print("=" * 60)
-
-            return answer
-
-        except Exception as e:
-
-            print(
-                f"\n⚠️ OpenRouter unavailable."
-                f"\nReason: {e}"
-            )
-
-    else:
-
-        print(
-            "\n⚠️ OPENROUTER_API_KEY not configured."
-        )
-
-
-    # ==================================================
-    # ALL PROVIDERS FAILED
-    # ==================================================
-
-    print("=" * 60)
+    print("\n" + "=" * 60)
     print("❌ ALL LLM PROVIDERS FAILED")
     print("=" * 60)
 
+    details = "\n".join(errors)
+
     raise RuntimeError(
-        "All configured LLM providers are currently unavailable."
+        "All configured LLM providers failed.\n"
+        "Check your API keys, model names, quotas, "
+        "network connection, and provider availability.\n\n"
+        f"Provider errors:\n{details}"
     )
 
 
 # ==================================================
-# 11. Test
+# 9. Local Test
 # ==================================================
 
 if __name__ == "__main__":
 
     test_prompt = """
-You are an academic assistant.
+    You are an academic assistant.
 
-Explain Retrieval-Augmented Generation (RAG)
-in simple words in 3 sentences.
-"""
+    Explain Retrieval-Augmented Generation (RAG)
+    in simple words in 3 sentences.
+    """
 
     try:
-
         answer = generate_answer(test_prompt)
 
         print("\n")
@@ -438,11 +341,10 @@ in simple words in 3 sentences.
         print(answer)
         print("=" * 60)
 
-    except Exception as e:
-
+    except Exception as error:
         print("\n")
         print("=" * 60)
         print("❌ ALL PROVIDERS FAILED")
         print("=" * 60)
-        print(e)
+        print(error)
         print("=" * 60)
