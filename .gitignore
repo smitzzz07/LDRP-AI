@@ -25,3 +25,16 @@ data/raw/*.txt
 # OS
 .DS_Store
 Thumbs.db
+# Local databases
+*.db
+users.db
+
+# Uploaded user files
+data/uploads/
+
+# Bundled Node runtime and dependencies
+node/
+node_modules/
+
+# Python cache and virtual environments
+*.pyc
