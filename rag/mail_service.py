@@ -157,7 +157,7 @@ font-size:30px;
 line-height:60px;
 "
 >
-◇
+*
 </div>
 
 <h1

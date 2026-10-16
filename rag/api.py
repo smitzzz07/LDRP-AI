@@ -114,15 +114,15 @@ def chat(
     Normal LDRP RAG chat endpoint.
     Flow:
     User Question
-        ↓
+        |
     RAG Retriever
-        ↓
+        |
     FAISS
-        ↓
+        |
     Relevant Chunks
-        ↓
+        |
     LLM
-        ↓
+        |
     Answer
     """
     question = request.question.strip()
@@ -305,17 +305,17 @@ async def upload_pdf(
     Upload and process a PDF.
     Flow:
     PDF
-      ↓
+      |
     Save to data/uploads
-      ↓
+      |
     Extract text
-      ↓
+      |
     Chunk text
-      ↓
+      |
     Create embeddings
-      ↓
+      |
     FAISS index
-      ↓
+      |
     Return document_id
     """
     # --------------------------------------------------------

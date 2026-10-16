@@ -41,7 +41,7 @@ def main():
     # Check chunks file
     if not INPUT_PATH.exists():
 
-        print("❌ chunks.json not found!")
+        print("[ERROR] chunks.json not found!")
 
         print(
             f"Expected location:\n{INPUT_PATH}"
@@ -58,7 +58,7 @@ def main():
 
         chunks = json.load(file)
 
-    print(f"✅ Loaded {len(chunks)} chunks")
+    print(f"[OK] Loaded {len(chunks)} chunks")
 
     # Load embedding model
     print("\nLoading embedding model...")
@@ -67,7 +67,7 @@ def main():
         MODEL_NAME
     )
 
-    print("✅ Embedding model loaded")
+    print("[OK] Embedding model loaded")
 
     # Extract text
     texts = [
@@ -83,7 +83,7 @@ def main():
         show_progress_bar=True
     )
 
-    print("✅ Embeddings created")
+    print("[OK] Embeddings created")
 
     print(
         f"Embedding dimensions: "

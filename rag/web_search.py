@@ -17,8 +17,8 @@ def search_web(query, max_results=MAX_RESULTS):
     Search the public web and normalize the results.
     """
 
-    print("\n🌐 Searching the web...")
-    print(f"🔎 Query: {query}")
+    print("\n[WEB] Searching the web...")
+    print(f"[SEARCH] Query: {query}")
 
     try:
         results = DDGS().text(
@@ -45,7 +45,7 @@ def search_web(query, max_results=MAX_RESULTS):
             })
 
         print(
-            f"✅ Web results found: "
+            f"[OK] Web results found: "
             f"{len(normalized_results)}"
         )
 
@@ -53,7 +53,7 @@ def search_web(query, max_results=MAX_RESULTS):
 
     except Exception as error:
         print(
-            f"❌ Web search failed: "
+            f"[ERROR] Web search failed: "
             f"{type(error).__name__}: {error}"
         )
         return []

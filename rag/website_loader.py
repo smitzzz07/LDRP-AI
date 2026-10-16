@@ -186,7 +186,7 @@ def main():
         )
 
         print(
-            "\n✅ Website downloaded successfully"
+            "\n[OK] Website downloaded successfully"
         )
 
         # ------------------------------------------
@@ -198,7 +198,7 @@ def main():
         )
 
         print(
-            "✅ Website text extracted"
+            "[OK] Website text extracted"
         )
 
         # ------------------------------------------
@@ -249,7 +249,7 @@ def main():
         # ------------------------------------------
 
         print(
-            "\n✅ Website ingestion completed!"
+            "\n[OK] Website ingestion completed!"
         )
 
         print(
@@ -283,7 +283,7 @@ def main():
     except requests.exceptions.RequestException as e:
 
         print(
-            "\n❌ Website request failed"
+            "\n[ERROR] Website request failed"
         )
 
         print(
@@ -293,7 +293,7 @@ def main():
     except Exception as e:
 
         print(
-            "\n❌ Unexpected error"
+            "\n[ERROR] Unexpected error"
         )
 
         print(

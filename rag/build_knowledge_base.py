@@ -143,7 +143,7 @@ def extract_pdf_pages(pdf_path: Path):
 
     print()
     print("=" * 70)
-    print(f"📄 Processing PDF: {pdf_path.name}")
+    print(f"[DOC] Processing PDF: {pdf_path.name}")
     print("=" * 70)
 
     pages = []
@@ -151,7 +151,7 @@ def extract_pdf_pages(pdf_path: Path):
     try:
         document = fitz.open(pdf_path)
     except Exception as e:
-        print(f"❌ Could not open {pdf_path.name}")
+        print(f"[ERROR] Could not open {pdf_path.name}")
         print(f"   Error: {e}")
         return pages
 
@@ -167,7 +167,7 @@ def extract_pdf_pages(pdf_path: Path):
             text = clean_text(text)
 
             if not text:
-                print(f"   ⚠️ Page {page_number}: no text")
+                print(f"   [WARNING] Page {page_number}: no text")
                 continue
 
             pages.append(
@@ -179,13 +179,13 @@ def extract_pdf_pages(pdf_path: Path):
 
         except Exception as e:
             print(
-                f"   ⚠️ Error reading page "
+                f"   [WARNING] Error reading page "
                 f"{page_number}: {e}"
             )
 
     document.close()
 
-    print(f"   ✅ Extracted pages: {len(pages)}")
+    print(f"   [OK] Extracted pages: {len(pages)}")
 
     return pages
 
@@ -247,7 +247,7 @@ def build_pdf_chunks(pdf_path: Path, start_chunk_id: int):
 
             chunk_id += 1
 
-    print(f"   🧩 Chunks created: {len(chunks)}")
+    print(f"   [CHUNKS] Chunks created: {len(chunks)}")
 
     return chunks, chunk_id
 
@@ -267,14 +267,14 @@ def load_website_chunks(start_chunk_id: int):
     if not WEBSITE_CHUNKS_PATH.exists():
 
         print()
-        print("🌐 No website_chunks.json found.")
+        print("[WEB] No website_chunks.json found.")
         print("   Skipping website chunks.")
 
         return [], start_chunk_id
 
     print()
     print("=" * 70)
-    print("🌐 Loading Website Chunks")
+    print("[WEB] Loading Website Chunks")
     print("=" * 70)
 
     try:
@@ -289,7 +289,7 @@ def load_website_chunks(start_chunk_id: int):
 
     except Exception as e:
 
-        print("❌ Could not load website_chunks.json")
+        print("[ERROR] Could not load website_chunks.json")
         print(f"   Error: {e}")
 
         return [], start_chunk_id
@@ -360,7 +360,7 @@ def load_website_chunks(start_chunk_id: int):
 
         chunk_id += 1
 
-    print(f"   🌐 Website chunks loaded: {len(result)}")
+    print(f"   [WEB] Website chunks loaded: {len(result)}")
 
     return result, chunk_id
 
@@ -377,7 +377,7 @@ def validate_chunks(chunks):
 
     print()
     print("=" * 70)
-    print("🔍 Validating Chunks")
+    print("[SEARCH] Validating Chunks")
     print("=" * 70)
 
     if not chunks:
@@ -421,8 +421,8 @@ def validate_chunks(chunks):
 
         ids.add(chunk_id)
 
-    print(f"   ✅ Total chunks: {len(chunks)}")
-    print("   ✅ No duplicate chunk IDs")
+    print(f"   [OK] Total chunks: {len(chunks)}")
+    print("   [OK] No duplicate chunk IDs")
 
 
 # ============================================================
@@ -450,7 +450,7 @@ def save_all_chunks(chunks):
         )
 
     print()
-    print(f"💾 Saved: {ALL_CHUNKS_PATH}")
+    print(f"[SAVED] Saved: {ALL_CHUNKS_PATH}")
 
 
 # ============================================================
@@ -461,7 +461,7 @@ def create_embeddings(chunks):
 
     print()
     print("=" * 70)
-    print("🧠 Creating Embeddings")
+    print("[MODEL] Creating Embeddings")
     print("=" * 70)
 
     print(f"   Model: {MODEL_NAME}")
@@ -473,7 +473,7 @@ def create_embeddings(chunks):
 
     except Exception as e:
 
-        print("❌ Could not load embedding model.")
+        print("[ERROR] Could not load embedding model.")
         print(f"   Error: {e}")
 
         raise
@@ -495,7 +495,7 @@ def create_embeddings(chunks):
     )
 
     print(
-        f"   ✅ Embedding shape: "
+        f"   [OK] Embedding shape: "
         f"{embeddings.shape}"
     )
 
@@ -522,7 +522,7 @@ def create_embeddings(chunks):
             ensure_ascii=False
         )
 
-    print(f"💾 Saved: {EMBEDDINGS_PATH}")
+    print(f"[SAVED] Saved: {EMBEDDINGS_PATH}")
 
     return embeddings
 
@@ -535,7 +535,7 @@ def create_faiss_index(embeddings):
 
     print()
     print("=" * 70)
-    print("🔎 Building FAISS Index")
+    print("[SEARCH] Building FAISS Index")
     print("=" * 70)
 
     if len(embeddings) == 0:
@@ -554,7 +554,7 @@ def create_faiss_index(embeddings):
     index.add(embeddings)
 
     print(
-        f"   ✅ FAISS vectors: "
+        f"   [OK] FAISS vectors: "
         f"{index.ntotal}"
     )
 
@@ -563,7 +563,7 @@ def create_faiss_index(embeddings):
         str(FAISS_PATH)
     )
 
-    print(f"💾 Saved: {FAISS_PATH}")
+    print(f"[SAVED] Saved: {FAISS_PATH}")
 
     return index
 
@@ -583,18 +583,18 @@ def show_summary(
     print()
     print()
     print("=" * 70)
-    print("🎉 KNOWLEDGE BASE BUILD COMPLETE")
+    print("[SUCCESS] KNOWLEDGE BASE BUILD COMPLETE")
     print("=" * 70)
 
     print()
-    print("📚 PDFs")
+    print("[DATA] PDFs")
     print(f"   Files: {len(pdf_files)}")
 
     for pdf in pdf_files:
-        print(f"   • {pdf.name}")
+        print(f"   - {pdf.name}")
 
     print()
-    print("🧩 CHUNKS")
+    print("[CHUNKS] CHUNKS")
     print(f"   PDF chunks:     {len(pdf_chunks)}")
     print(f"   Website chunks: {len(website_chunks)}")
     print(
@@ -603,22 +603,22 @@ def show_summary(
     )
 
     print()
-    print("🧠 EMBEDDINGS")
+    print("[MODEL] EMBEDDINGS")
     print(f"   Model: {MODEL_NAME}")
     print(f"   Shape: {embeddings.shape}")
 
     print()
-    print("🔎 FAISS")
+    print("[SEARCH] FAISS")
     print(f"   Vectors: {index.ntotal}")
 
     print()
-    print("📁 OUTPUT")
+    print("[DIR] OUTPUT")
     print(f"   {ALL_CHUNKS_PATH}")
     print(f"   {EMBEDDINGS_PATH}")
     print(f"   {FAISS_PATH}")
 
     print()
-    print("🚀 Your RAG knowledge base is ready.")
+    print("[READY] Your RAG knowledge base is ready.")
     print("=" * 70)
 
 
@@ -629,9 +629,9 @@ def show_summary(
 def main():
 
     print()
-    print("╔══════════════════════════════════════════════════════════╗")
-    print("║          LDRP RAG MULTI-PDF KNOWLEDGE BUILDER          ║")
-    print("╚══════════════════════════════════════════════════════════╝")
+    print("+==========================================================+")
+    print("|          LDRP RAG MULTI-PDF KNOWLEDGE BUILDER          |")
+    print("+==========================================================+")
 
     # --------------------------------------------------------
     # Check raw directory
@@ -640,7 +640,7 @@ def main():
     if not RAW_DIR.exists():
 
         print()
-        print(f"❌ Raw directory does not exist:")
+        print(f"[ERROR] Raw directory does not exist:")
         print(f"   {RAW_DIR}")
 
         sys.exit(1)
@@ -656,7 +656,7 @@ def main():
     if not pdf_files:
 
         print()
-        print("❌ No PDF files found.")
+        print("[ERROR] No PDF files found.")
         print()
         print("Put your PDFs inside:")
         print(f"   {RAW_DIR}")
@@ -665,10 +665,10 @@ def main():
         sys.exit(1)
 
     print()
-    print(f"📚 Found {len(pdf_files)} PDF file(s):")
+    print(f"[DATA] Found {len(pdf_files)} PDF file(s):")
 
     for pdf in pdf_files:
-        print(f"   • {pdf.name}")
+        print(f"   - {pdf.name}")
 
     # --------------------------------------------------------
     # Process PDFs
@@ -739,7 +739,7 @@ def main():
     if index.ntotal != len(all_chunks):
 
         raise RuntimeError(
-            "❌ FAISS/chunk count mismatch: "
+            "[ERROR] FAISS/chunk count mismatch: "
             f"FAISS={index.ntotal}, "
             f"chunks={len(all_chunks)}"
         )
@@ -747,7 +747,7 @@ def main():
     if len(embeddings) != len(all_chunks):
 
         raise RuntimeError(
-            "❌ Embedding/chunk count mismatch: "
+            "[ERROR] Embedding/chunk count mismatch: "
             f"embeddings={len(embeddings)}, "
             f"chunks={len(all_chunks)}"
         )

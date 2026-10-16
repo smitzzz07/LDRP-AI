@@ -18,7 +18,7 @@ def run(script):
 
     if result.returncode != 0:
         raise SystemExit(
-            f"\n❌ {script} failed with exit code {result.returncode}"
+            f"\n[ERROR] {script} failed with exit code {result.returncode}"
         )
 
 
@@ -37,7 +37,7 @@ def main():
     run("vector_store.py")
 
     print("\n" + "=" * 70)
-    print("✅ COMPLETE KNOWLEDGE BASE BUILD FINISHED")
+    print("[OK] COMPLETE KNOWLEDGE BASE BUILD FINISHED")
     print("=" * 70)
     print("You can now restart the FastAPI backend.")
     print()

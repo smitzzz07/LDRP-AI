@@ -73,7 +73,7 @@ print("Loading embedding model...")
 
 model = SentenceTransformer(MODEL_NAME)
 
-print("✅ Embedding model loaded")
+print("[OK] Embedding model loaded")
 
 
 # ============================================================
@@ -84,7 +84,7 @@ print("Loading FAISS index...")
 
 index = faiss.read_index(str(INDEX_PATH))
 
-print("✅ FAISS index loaded")
+print("[OK] FAISS index loaded")
 print(f"Total vectors: {index.ntotal}")
 
 
@@ -97,7 +97,7 @@ print("Loading chunks...")
 with open(CHUNKS_PATH, "r", encoding="utf-8") as f:
     chunks = json.load(f)
 
-print(f"✅ Loaded {len(chunks)} chunks")
+print(f"[OK] Loaded {len(chunks)} chunks")
 
 
 # ============================================================
@@ -110,7 +110,7 @@ if index.ntotal != len(chunks):
         f"all_chunks.json has {len(chunks)} chunks."
     )
 
-print("✅ FAISS and chunk count match")
+print("[OK] FAISS and chunk count match")
 
 
 # ============================================================
@@ -511,13 +511,13 @@ def select_best_source(query, candidates, intent):
 
             if info["score"] > 0:
                 print(
-                    "\n🎯 Explicit directory/contact source selection enabled"
+                    "\n[TARGET] Explicit directory/contact source selection enabled"
                 )
                 print(
-                    f"📌 Selected structured source: {preferred_source}"
+                    f"[PIN] Selected structured source: {preferred_source}"
                 )
                 print(
-                    f"📌 Source selection score: {info['score']}"
+                    f"[PIN] Source selection score: {info['score']}"
                 )
                 return preferred_source, info["source_type"]
 
@@ -883,7 +883,7 @@ def retrieve(query):
 
     intent = detect_query_intent(query)
 
-    print(f"🎯 Query intent: {intent}")
+    print(f"[TARGET] Query intent: {intent}")
 
     # ========================================================
     # STEP 1: QUERY EMBEDDING
@@ -947,7 +947,7 @@ def retrieve(query):
         intent,
     )
 
-    print(f"\n📚 Best source: {best_source}")
+    print(f"\n[DATA] Best source: {best_source}")
 
     # ========================================================
     # STEP 5: SOURCE-WIDE EXPANSION
@@ -965,8 +965,8 @@ def retrieve(query):
         and best_source_type == "pdf"
     ):
 
-        print("\n🔎 Source-wide expansion enabled")
-        print(f"📄 Source: {best_source}")
+        print("\n[SEARCH] Source-wide expansion enabled")
+        print(f"[DOC] Source: {best_source}")
 
         existing_indexes = {
             item["index"]
@@ -991,7 +991,7 @@ def retrieve(query):
                 source_indexes.append(idx)
 
         print(
-            f"📚 Total chunks in source: "
+            f"[DATA] Total chunks in source: "
             f"{len(source_indexes)}"
         )
 
@@ -1016,7 +1016,7 @@ def retrieve(query):
             source_chunks_added += 1
 
         print(
-            f"📚 Added {source_chunks_added} "
+            f"[DATA] Added {source_chunks_added} "
             f"same-source chunks"
         )
 
@@ -1074,7 +1074,7 @@ def retrieve(query):
             requested_month = get_requested_month(query)
 
             print(
-                f"\n📅 Requested month: "
+                f"\n[DATE] Requested month: "
                 f"{requested_month or 'not specified'}"
             )
 
@@ -1156,12 +1156,12 @@ def retrieve(query):
                 )
 
                 print(
-                    f"📅 Matching chunks: "
+                    f"[DATE] Matching chunks: "
                     f"{len(month_matches)}"
                 )
 
                 print(
-                    f"📄 Neighbor chunks: "
+                    f"[DOC] Neighbor chunks: "
                     f"{len(neighboring_chunks)}"
                 )
 
@@ -1181,7 +1181,7 @@ def retrieve(query):
             requested_department = get_requested_department(query)
 
             print(
-                f"\n🏫 Requested department: "
+                f"\n[DEPT] Requested department: "
                 f"{requested_department or 'not specified'}"
             )
 
@@ -1245,7 +1245,7 @@ def retrieve(query):
                             directory_table_pages.add(str(page))
 
                 print(
-                    f"📋 LDRP directory table pages: "
+                    f"[INFO] LDRP directory table pages: "
                     f"{sorted(directory_table_pages)}"
                 )
 
@@ -1370,17 +1370,17 @@ def retrieve(query):
                 )
 
                 print(
-                    f"🏫 MCA matching chunks: "
+                    f"[DEPT] MCA matching chunks: "
                     f"{len(mca_candidates)}"
                 )
 
                 print(
-                    f"📄 MCA same-page chunks: "
+                    f"[DOC] MCA same-page chunks: "
                     f"{len(same_page_chunks)}"
                 )
 
                 print(
-                    f"📄 MCA neighbor chunks: "
+                    f"[DOC] MCA neighbor chunks: "
                     f"{len(neighboring_chunks)}"
                 )
 
@@ -1473,16 +1473,16 @@ def retrieve(query):
                     same_source_candidates = directory_candidates
 
                     print(
-                        f"\n📋 Directory overview mode enabled"
+                        f"\n[INFO] Directory overview mode enabled"
                     )
                     print(
-                        f"📄 Directory pages: {sorted(directory_pages)}"
+                        f"[DOC] Directory pages: {sorted(directory_pages)}"
                     )
                     print(
-                        f"📄 Expanded pages: {sorted(expanded_pages)}"
+                        f"[DOC] Expanded pages: {sorted(expanded_pages)}"
                     )
                     print(
-                        f"📚 Directory chunks selected: {len(same_source_candidates)}"
+                        f"[DATA] Directory chunks selected: {len(same_source_candidates)}"
                     )
 
             else:
@@ -1680,7 +1680,7 @@ TEXT:
 
 def answer_from_web(question):
 
-    print("\n🌐 Question routed to Web Search")
+    print("\n[WEB] Question routed to Web Search")
 
     web_results = search_web(
         question
@@ -1733,7 +1733,7 @@ USER QUESTION:
 ANSWER:
 """
 
-    print("\n🤖 Generating web-based answer...")
+    print("\n[AI] Generating web-based answer...")
 
     answer = generate_answer(
         prompt
@@ -1867,7 +1867,7 @@ def ask_question(question):
     )
 
     print(
-        f"🎯 Intent: {intent}"
+        f"[TARGET] Intent: {intent}"
     )
 
     # ========================================================
@@ -1885,7 +1885,7 @@ def ask_question(question):
     if not results:
 
         print(
-            "⚠️ No local results."
+            "[WARNING] No local results."
         )
 
         return answer_from_web(
@@ -1899,7 +1899,7 @@ def ask_question(question):
     if intent == "unknown":
 
         print(
-            "🌐 Question is outside "
+            "[WEB] Question is outside "
             "the local LDRP domain."
         )
 
@@ -1918,7 +1918,7 @@ def ask_question(question):
     if not local_match:
 
         print(
-            "⚠️ Local results are not "
+            "[WARNING] Local results are not "
             "strong enough."
         )
 
@@ -2012,7 +2012,7 @@ def ask_question(question):
                 expanded_results.append(adjacent_result)
                 existing_indexes.add(adjacent_index)
                 print(
-                    f"💰 Added adjacent fee chunk: index={adjacent_index}, "
+                    f"[FEE] Added adjacent fee chunk: index={adjacent_index}, "
                     f"page={adjacent_metadata.get('page')}"
                 )
 
@@ -2025,7 +2025,7 @@ def ask_question(question):
             )
             results = expanded_results
             print(
-                f"💰 Fee context expansion complete: {len(results)} chunks "
+                f"[FEE] Fee context expansion complete: {len(results)} chunks "
                 f"will be sent to the LLM."
             )
 
@@ -2152,13 +2152,13 @@ def ask_question(question):
         if selected_topic_results:
             results = original_results + selected_topic_results
             print(
-                "🎓 Scholarship context expansion: added "
+                "[ACADEMIC] Scholarship context expansion: added "
                 f"{len(selected_topic_results)} scholarship/neighbor chunks; "
                 f"{len(results)} total chunks will be sent to the LLM."
             )
         else:
             print(
-                "⚠️ No scholarship-specific chunks found in the comprehensive guide."
+                "[WARNING] No scholarship-specific chunks found in the comprehensive guide."
             )
 
     # ========================================================
@@ -2209,7 +2209,7 @@ def ask_question(question):
     # ========================================================
 
     print(
-        "\n🤖 Generating answer..."
+        "\n[AI] Generating answer..."
     )
 
     answer = generate_answer(
@@ -2288,32 +2288,32 @@ if __name__ == "__main__":
     print("\nKnowledge Base:")
 
     print(
-        f"  📚 Chunks: "
+        f"  [DATA] Chunks: "
         f"{len(chunks)}"
     )
 
     print(
-        f"  🔎 FAISS vectors: "
+        f"  [SEARCH] FAISS vectors: "
         f"{index.ntotal}"
     )
 
     print(
-        f"  🧠 Embedding model: "
+        f"  [MODEL] Embedding model: "
         f"{MODEL_NAME}"
     )
 
     print(
-        f"  🎯 Candidate-K: "
+        f"  [TARGET] Candidate-K: "
         f"{CANDIDATE_K}"
     )
 
     print(
-        f"  🎯 Final Top-K: "
+        f"  [TARGET] Final Top-K: "
         f"{TOP_K}"
     )
 
     print(
-        f"  📏 Relevance threshold: "
+        f"  [METRIC] Relevance threshold: "
         f"{RELEVANCE_THRESHOLD}"
     )
 

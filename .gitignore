@@ -28,6 +28,7 @@ Thumbs.db
 # Local databases
 *.db
 users.db
+LDRP-AI/users.db
 
 # Uploaded user files
 data/uploads/

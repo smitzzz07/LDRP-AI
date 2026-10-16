@@ -67,18 +67,18 @@ def main():
     print("       LDRP RAG - COMBINE KNOWLEDGE")
     print("=" * 70)
 
-    print("\n📄 Loading PDF chunks...")
+    print("\n[DOC] Loading PDF chunks...")
     pdf_chunks = load_json(PDF_CHUNKS_PATH)
 
-    print(f"✅ PDF chunks loaded: {len(pdf_chunks)}")
+    print(f"[OK] PDF chunks loaded: {len(pdf_chunks)}")
     for chunk in pdf_chunks:
         validate_chunk(chunk, "PDF")
     prepare_pdf_chunks(pdf_chunks)
 
-    print("\n🌐 Loading website chunks...")
+    print("\n[WEB] Loading website chunks...")
     website_chunks = load_json(WEBSITE_CHUNKS_PATH)
 
-    print(f"✅ Website chunks loaded: {len(website_chunks)}")
+    print(f"[OK] Website chunks loaded: {len(website_chunks)}")
     for chunk in website_chunks:
         validate_chunk(chunk, "Website")
     prepare_website_chunks(website_chunks)
@@ -124,16 +124,16 @@ def main():
     print("KNOWLEDGE BASE SUMMARY")
     print("=" * 70)
 
-    print(f"📄 PDF chunks     : {pdf_count}")
-    print(f"🌐 Website chunks : {website_count}")
-    print(f"📚 Total chunks   : {len(all_chunks)}")
+    print(f"[DOC] PDF chunks     : {pdf_count}")
+    print(f"[WEB] Website chunks : {website_count}")
+    print(f"[DATA] Total chunks   : {len(all_chunks)}")
 
     print("\nChunks by source:")
     for source, count in sources.items():
-        print(f"  • {source}: {count}")
+        print(f"  - {source}: {count}")
 
-    print(f"\n📁 Saved: {OUTPUT_PATH}")
-    print("✅ Knowledge base created successfully!")
+    print(f"\n[DIR] Saved: {OUTPUT_PATH}")
+    print("[OK] Knowledge base created successfully!")
 
 
 if __name__ == "__main__":

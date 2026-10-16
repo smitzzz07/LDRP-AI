@@ -78,7 +78,7 @@ def generate_with_openrouter(prompt):
             "OPENROUTER_API_KEY is not configured."
         )
 
-    print("\n🔵 Trying OpenRouter (primary)...")
+    print("\n[*] Trying OpenRouter (primary)...")
     print(f"Model: {OPENROUTER_MODEL}")
 
     url = "https://openrouter.ai/api/v1/chat/completions"
@@ -125,7 +125,7 @@ def generate_with_openrouter(prompt):
             "OpenRouter returned an empty response."
         )
 
-    print("✅ OpenRouter response received")
+    print("[OK] OpenRouter response received")
 
     return answer.strip()
 
@@ -147,7 +147,7 @@ def generate_with_gemini(prompt):
             "GEMINI_API_KEY is not configured."
         )
 
-    print("\n🟣 Trying Gemini (fallback)...")
+    print("\n[*] Trying Gemini (fallback)...")
     print(f"Model: {GEMINI_MODEL}")
 
     # Exactly one API call; no retry loop.
@@ -163,7 +163,7 @@ def generate_with_gemini(prompt):
             "Gemini returned an empty response."
         )
 
-    print("✅ Gemini response received")
+    print("[OK] Gemini response received")
 
     return answer.strip()
 
@@ -185,7 +185,7 @@ def generate_with_groq(prompt):
             "GROQ_API_KEY is not configured."
         )
 
-    print("\n🟢 Trying Groq (final fallback)...")
+    print("\n[*] Trying Groq (final fallback)...")
     print(f"Model: {GROQ_MODEL}")
 
     # Exactly one API call; no retry loop.
@@ -208,7 +208,7 @@ def generate_with_groq(prompt):
             "Groq returned an empty response."
         )
 
-    print("✅ Groq response received")
+    print("[OK] Groq response received")
 
     return answer.strip()
 
@@ -239,7 +239,7 @@ def generate_answer(prompt):
         )
 
     print("\n" + "=" * 60)
-    print("🤖 LDRP RAG LLM FALLBACK SYSTEM")
+    print("[AI] LDRP RAG LLM FALLBACK SYSTEM")
     print("=" * 60)
 
     providers = [
@@ -270,17 +270,17 @@ def generate_answer(prompt):
                 f"{provider_name}_API_KEY is not configured."
             )
 
-            print(f"\n⚠️ Skipping {provider_name}: {message}")
+            print(f"\n[WARNING] Skipping {provider_name}: {message}")
             errors.append(f"{provider_name}: {message}")
             continue
 
         try:
-            print(f"\n➡️ Provider: {provider_name}")
+            print(f"\n-> Provider: {provider_name}")
 
             answer = generate_function(prompt)
 
             print("\n" + "=" * 60)
-            print(f"✅ PROVIDER USED: {provider_name}")
+            print(f"[OK] PROVIDER USED: {provider_name}")
             print("=" * 60)
 
             return answer
@@ -290,9 +290,9 @@ def generate_answer(prompt):
                 f"{type(error).__name__}: {error}"
             )
 
-            print(f"\n❌ {provider_name} failed.")
+            print(f"\n[ERROR] {provider_name} failed.")
             print(f"Reason: {error_message}")
-            print("➡️ Moving to the next provider...")
+            print("-> Moving to the next provider...")
 
             errors.append(
                 f"{provider_name}: {error_message}"
@@ -305,7 +305,7 @@ def generate_answer(prompt):
     # ==================================================
 
     print("\n" + "=" * 60)
-    print("❌ ALL LLM PROVIDERS FAILED")
+    print("[ERROR] ALL LLM PROVIDERS FAILED")
     print("=" * 60)
 
     details = "\n".join(errors)
@@ -344,7 +344,7 @@ if __name__ == "__main__":
     except Exception as error:
         print("\n")
         print("=" * 60)
-        print("❌ ALL PROVIDERS FAILED")
+        print("[ERROR] ALL PROVIDERS FAILED")
         print("=" * 60)
         print(error)
         print("=" * 60)

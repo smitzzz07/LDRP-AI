@@ -45,7 +45,7 @@ def main():
 
     if not INPUT_PATH.exists():
 
-        print("❌ embeddings.json not found!")
+        print("[ERROR] embeddings.json not found!")
 
         print(
             f"Expected location:\n{INPUT_PATH}"
@@ -58,7 +58,7 @@ def main():
     # LOAD EMBEDDINGS
     # ==================================================
 
-    print("\n📚 Loading embeddings...")
+    print("\n[DATA] Loading embeddings...")
 
     with open(
         INPUT_PATH,
@@ -70,7 +70,7 @@ def main():
 
 
     print(
-        f"✅ Loaded {len(chunks)} chunks"
+        f"[OK] Loaded {len(chunks)} chunks"
     )
 
 
@@ -80,7 +80,7 @@ def main():
 
     if not chunks:
 
-        print("❌ No chunks found!")
+        print("[ERROR] No chunks found!")
 
         return
 
@@ -90,7 +90,7 @@ def main():
     # ==================================================
 
     print(
-        "\n🔢 Converting embeddings to NumPy..."
+        "\n[NUM] Converting embeddings to NumPy..."
     )
 
     embeddings = np.array(
@@ -131,11 +131,11 @@ def main():
 
 
     print(
-        f"✅ Number of vectors: {number_of_vectors}"
+        f"[OK] Number of vectors: {number_of_vectors}"
     )
 
     print(
-        f"✅ Vector dimension: {dimension}"
+        f"[OK] Vector dimension: {dimension}"
     )
 
 
@@ -144,7 +144,7 @@ def main():
     # ==================================================
 
     print(
-        "\n🔎 Creating FAISS IndexFlatL2..."
+        "\n[SEARCH] Creating FAISS IndexFlatL2..."
     )
 
     index = faiss.IndexFlatL2(
@@ -157,7 +157,7 @@ def main():
     # ==================================================
 
     print(
-        "📥 Adding vectors to FAISS..."
+        "[INPUT] Adding vectors to FAISS..."
     )
 
     index.add(
@@ -166,7 +166,7 @@ def main():
 
 
     print(
-        f"✅ FAISS vectors: {index.ntotal}"
+        f"[OK] FAISS vectors: {index.ntotal}"
     )
 
 
@@ -214,27 +214,27 @@ def main():
     )
 
     print(
-        f"📚 Chunks:       {len(chunks)}"
+        f"[DATA] Chunks:       {len(chunks)}"
     )
 
     print(
-        f"🧠 Vectors:      {index.ntotal}"
+        f"[MODEL] Vectors:      {index.ntotal}"
     )
 
     print(
-        f"📐 Dimensions:   {dimension}"
+        f"[DIM] Dimensions:   {dimension}"
     )
 
     print(
-        "🔎 Index type:   IndexFlatL2"
+        "[SEARCH] Index type:   IndexFlatL2"
     )
 
     print(
-        f"\n📁 Saved to:\n{VECTOR_DB_PATH}"
+        f"\n[DIR] Saved to:\n{VECTOR_DB_PATH}"
     )
 
     print(
-        "\n✅ Vector database is ready!"
+        "\n[OK] Vector database is ready!"
     )
 
 

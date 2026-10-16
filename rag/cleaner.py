@@ -41,7 +41,7 @@ if __name__ == "__main__":
 
     # Check input file
     if not RAW_TEXT_PATH.exists():
-        print("❌ extracted_text.txt not found!")
+        print("[ERROR] extracted_text.txt not found!")
         print(f"Expected location: {RAW_TEXT_PATH}")
         exit()
 
@@ -54,7 +54,7 @@ if __name__ == "__main__":
     # Save cleaned text
     CLEAN_TEXT_PATH.write_text(cleaned_text, encoding="utf-8")
 
-    print("✅ Text cleaning completed!")
+    print("[OK] Text cleaning completed!")
     print(f"Raw characters: {len(raw_text)}")
     print(f"Clean characters: {len(cleaned_text)}")
     print(f"Saved to: {CLEAN_TEXT_PATH}")

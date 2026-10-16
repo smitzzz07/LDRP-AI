@@ -134,8 +134,8 @@ For syllabus questions, prefer a format like:
 
 **MCA Semester II Subjects**
 
-- **MCA-21** — Subject name
-- **MCA-22** — Subject name
+- **MCA-21** - Subject name
+- **MCA-22** - Subject name
 
 Use only codes and names actually supported by the context.
 

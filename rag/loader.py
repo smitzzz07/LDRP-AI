@@ -23,7 +23,7 @@ def extract_all_pdfs():
     )
 
     if not pdf_files:
-        print("❌ No PDF files found in data/raw/")
+        print("[ERROR] No PDF files found in data/raw/")
         return []
 
     all_pages = []
@@ -41,14 +41,14 @@ def extract_all_pdfs():
     for pdf_path in pdf_files:
 
         print("\n" + "-" * 70)
-        print(f"📄 Processing: {pdf_path.name}")
+        print(f"[DOC] Processing: {pdf_path.name}")
 
         try:
             doc = pymupdf.open(pdf_path)
 
         except Exception as error:
             print(
-                f"❌ Could not open {pdf_path.name}: {error}"
+                f"[ERROR] Could not open {pdf_path.name}: {error}"
             )
             continue
 
@@ -93,7 +93,7 @@ def extract_all_pdfs():
 
         doc.close()
 
-        print("   ✅ Extracted")
+        print("   [OK] Extracted")
 
     RAW_DIR.mkdir(
         parents=True,
@@ -119,24 +119,24 @@ def extract_all_pdfs():
     print("=" * 70)
 
     print(
-        f"📄 PDF files processed : {len(pdf_files)}"
+        f"[DOC] PDF files processed : {len(pdf_files)}"
     )
 
     print(
-        f"📑 Pages with text     : {total_pages}"
+        f"[PAGES] Pages with text     : {total_pages}"
     )
 
     print(
-        f"📝 Page records        : {len(all_pages)}"
+        f"[RECORDS] Page records        : {len(all_pages)}"
     )
 
     print(
-        f"📁 Saved               : "
+        f"[DIR] Saved               : "
         f"{EXTRACTED_PAGES_PATH}"
     )
 
     print(
-        f"📁 Legacy text         : "
+        f"[DIR] Legacy text         : "
         f"{EXTRACTED_TEXT_PATH}"
     )
 

@@ -195,7 +195,7 @@ def main():
     if not INPUT_PATH.exists():
 
         print(
-            "\n❌ website_data.json not found!"
+            "\n[ERROR] website_data.json not found!"
         )
 
         print(
@@ -339,7 +339,7 @@ def main():
     )
 
     print(
-        "\n✅ Website chunking completed!"
+        "\n[OK] Website chunking completed!"
     )
 
     print(

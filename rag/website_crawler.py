@@ -91,7 +91,7 @@ def download_page(url):
     except requests.RequestException as e:
 
         print(
-            f"⚠️ Failed: {url}"
+            f"[WARNING] Failed: {url}"
         )
 
         print(
@@ -317,14 +317,14 @@ def crawl_website():
             })
 
             print(
-                f"✅ Extracted "
+                f"[OK] Extracted "
                 f"{len(text)} characters"
             )
 
         else:
 
             print(
-                "⚠️ No text found"
+                "[WARNING] No text found"
             )
 
         # ------------------------------------------
@@ -414,7 +414,7 @@ def main():
     )
 
     print(
-        "\n✅ Website pages saved!"
+        "\n[OK] Website pages saved!"
     )
 
     print(
