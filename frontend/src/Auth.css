@@ -129,6 +129,20 @@
     inset 0 1px 0 rgba(255,255,255,.20);
 }
 
+.auth-logo-img {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  object-fit: contain;
+  border-radius: 12px;
+  padding: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.3),
+    0 0 20px rgba(124, 58, 237, 0.2);
+}
+
 .auth-logo h1 {
   margin: 0;
   color: #fff;

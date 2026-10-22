@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import "../Auth.css";
+import logoImg from "../assets/logo.webp";
 
 const AUTH_API = "http://127.0.0.1:8000/api/auth";
 
@@ -129,10 +130,7 @@ export default function Signup({
       <div className="auth-card signup-card">
 
         <div className="auth-logo">
-
-          <div className="auth-logo-orb">
-            ◈
-          </div>
+          <img src={logoImg} alt="LDRP Logo" className="auth-logo-img" />
 
           <div>
             <h1>LDRP AI</h1>

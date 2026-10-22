@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import "./App.css";
 import "./LDRP_App_chatgpt_pdf_card.css";
+import logoImg from "./assets/logo.webp";
 
 
 
@@ -33,7 +34,7 @@ const WELCOME_MESSAGE = {
 
   content:
 
-    "Hello! 👋 I’m the LDRP-ITR AI Assistant. Ask me anything about LDRP, MCA syllabus, courses, and academic information.",
+    "Hello! I’m the LDRP-ITR AI Assistant.\n Ask me anything about LDRP, MCA syllabus, courses, and academic information.",
 
 };
 
@@ -925,17 +926,13 @@ function ChatApp({ user, onLogout }) {
 
 
 
-            <div className="logo-3d">
-
-              <span>L</span>
-
+            <div className="logo">
+              <img src={logoImg} alt="LDRP Logo" className="brand-logo-img" />
             </div>
-
-
 
             <div className="brand-text">
 
-              <h1>LDRP-ITR</h1>
+              <h1>LDRP AI</h1>
 
               <p>AI Academic Assistant</p>
 
@@ -2371,11 +2368,7 @@ try {
 
 
 
-            <div className="auth-logo-orb">
-
-              ◈
-
-            </div>
+            <img src={logoImg} alt="LDRP Logo" className="auth-logo-img" />
 
 
 

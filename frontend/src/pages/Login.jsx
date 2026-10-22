@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import "../Auth.css";
+import logoImg from "../assets/logo.webp";
 
 const AUTH_API = "http://127.0.0.1:8000/api/auth";
 const REQUEST_TIMEOUT_MS = 10000;
@@ -237,7 +238,7 @@ export default function Login({ onLogin, onShowSignup }) {
 
         <div className="auth-card">
           <div className="auth-logo">
-            <div className="auth-logo-orb">◈</div>
+            <img src={logoImg} alt="LDRP Logo" className="auth-logo-img" />
             <div>
               <h1>LDRP AI</h1>
               <span>Academic Assistant</span>
@@ -301,7 +302,7 @@ export default function Login({ onLogin, onShowSignup }) {
 
       <div className="auth-card">
         <div className="auth-logo">
-          <div className="auth-logo-orb">◈</div>
+          <img src={logoImg} alt="LDRP Logo" className="auth-logo-img" />
           <div>
             <h1>LDRP AI</h1>
             <span>Academic Assistant</span>

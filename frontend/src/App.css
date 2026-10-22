@@ -195,6 +195,28 @@ body {
   gap: 14px;
 }
 
+.logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.brand-logo-img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease;
+}
+
+.brand-logo-img:hover {
+  transform: scale(1.05);
+}
+
 .logo-3d {
   width: 46px;
   height: 46px;
