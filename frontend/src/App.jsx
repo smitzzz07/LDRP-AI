@@ -12,6 +12,8 @@ import Signup from "./pages/Signup";
 
 import ResetPassword from "./pages/ResetPassword";
 
+import LandingPage from "./pages/LandingPage";
+
 
 
 const API_BASE = "http://127.0.0.1:8000/api";
@@ -2158,7 +2160,7 @@ function App() {
 
   const [screen, setScreen] =
 
-    useState("checking");
+    useState("landing");
 
 
 
@@ -2204,8 +2206,6 @@ function App() {
 
       if (!token) {
 
-        setScreen("login");
-
         return;
 
       }
@@ -2239,8 +2239,6 @@ try {
           clearAuth();
 
           setUser(null);
-
-          setScreen("login");
 
           return;
 
@@ -2294,17 +2292,11 @@ try {
 
         setUser(currentUser);
 
-        setScreen("chat");
-
-
-
       } catch {
 
         clearAuth();
 
         setUser(null);
-
-        setScreen("login");
 
       }
 
@@ -2319,21 +2311,19 @@ try {
 
 
   const handleLogin = (loginData) => {
-
+    try {
+      localStorage.setItem("has_account", "true");
+    } catch {}
     setUser(loginData);
-
     setScreen("chat");
-
   };
 
-
-
   const handleSignup = (signupData) => {
-
+    try {
+      localStorage.setItem("has_account", "true");
+    } catch {}
     setUser(signupData);
-
     setScreen("chat");
-
   };
 
 
@@ -2344,99 +2334,29 @@ try {
 
     setUser(null);
 
-    setScreen("login");
+    setScreen("landing");
 
   };
 
 
 
-  // Checking
+  // Landing
 
-  if (screen === "checking") {
+  if (screen === "landing") {
 
     return (
 
-      <div className="auth-page">
+      <LandingPage
 
+        user={user}
 
+        onNavigateLogin={() => setScreen("login")}
 
-        <div className="auth-card">
+        onNavigateSignup={() => setScreen("signup")}
 
+        onNavigateChat={() => setScreen("chat")}
 
-
-          <div className="auth-logo">
-
-
-
-            <img src={logoImg} alt="LDRP Logo" className="auth-logo-img" />
-
-
-
-            <div>
-
-              <h1>LDRP AI</h1>
-
-              <span>
-
-                Academic Assistant
-
-              </span>
-
-            </div>
-
-
-
-          </div>
-
-
-
-          <div className="auth-heading">
-
-
-
-            <h2>Checking session...</h2>
-
-
-
-            <p>
-
-              Please wait while we verify
-
-              your account.
-
-            </p>
-
-
-
-          </div>
-
-
-
-          <div
-
-            className="auth-submit"
-
-            style={{
-
-              cursor: "default",
-
-            }}
-
-          >
-
-            <span className="auth-spinner" />
-
-            Loading...
-
-          </div>
-
-
-
-        </div>
-
-
-
-      </div>
+      />
 
     );
 
