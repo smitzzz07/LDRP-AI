@@ -1,6 +1,23 @@
 import React, { useState } from "react";
 import "../LandingPage.css";
 import InteractiveMascot from "../components/InteractiveMascot";
+import HeroCosmicBackdrop from "../components/HeroCosmicBackdrop";
+import {
+  ArrowRight,
+  ArrowUpRight,
+  GraduationCap,
+  Lightning,
+  BellSimple,
+  BookmarkSimple,
+  BookOpenText,
+  Pulse,
+  MagnifyingGlass,
+  ShieldCheck,
+  FileArrowUp,
+  UsersFour,
+  Plus,
+  Minus,
+} from "@phosphor-icons/react";
 
 const FAQ_ITEMS = [
   {
@@ -130,9 +147,14 @@ export default function LandingPage({
               className="nav-link nav-github-link"
               title="View on GitHub"
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
-              </svg>
+              <img
+                src="https://cdn.simpleicons.org/github/white"
+                alt="GitHub"
+                width="16"
+                height="16"
+                className="nav-github-icon"
+                loading="lazy"
+              />
               <span>GitHub</span>
             </a>
           </div>
@@ -144,6 +166,9 @@ export default function LandingPage({
           ==================================================================== */}
       <main>
         <section id="hero-section" className="hero-section">
+          {/* Animated Stars and Floating Atmospheric Clouds */}
+          <HeroCosmicBackdrop />
+
           {/* Expansive Ambient Behind-Mascot Glow Covering Entire Hero */}
           <div className="hero-behind-mascot-glow" aria-hidden="true" />
 
@@ -168,19 +193,7 @@ export default function LandingPage({
                   onClick={onNavigateChat}
                 >
                   <span>Continue to Chat</span>
-                  <svg
-                    width="15"
-                    height="15"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                    <polyline points="12 5 19 12 12 19"></polyline>
-                  </svg>
+                  <ArrowRight size={16} weight="bold" />
                 </button>
               ) : hasExistingAccount ? (
                 /* User already created an account: Show ONLY Sign In */
@@ -190,19 +203,7 @@ export default function LandingPage({
                   onClick={onNavigateLogin}
                 >
                   <span>Sign In</span>
-                  <svg
-                    width="15"
-                    height="15"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                    <polyline points="12 5 19 12 12 19"></polyline>
-                  </svg>
+                  <ArrowRight size={16} weight="bold" />
                 </button>
               ) : (
                 /* New user: Show BOTH Sign Up and Sign In */
@@ -213,19 +214,7 @@ export default function LandingPage({
                     onClick={() => onNavigateSignup && onNavigateSignup("")}
                   >
                     <span>Sign Up</span>
-                    <svg
-                      width="15"
-                      height="15"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <line x1="5" y1="12" x2="19" y2="12"></line>
-                      <polyline points="12 5 19 12 12 19"></polyline>
-                    </svg>
+                    <ArrowRight size={16} weight="bold" />
                   </button>
                   <button
                     type="button"
@@ -264,43 +253,28 @@ export default function LandingPage({
             {/* Orbiting Badges */}
             <div className="feature-badge badge-pos-1">
               <span className="feature-badge-icon">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                  <line x1="16" y1="13" x2="8" y2="13"></line>
-                  <line x1="16" y1="17" x2="8" y2="17"></line>
-                  <polyline points="10 9 9 9 8 9"></polyline>
-                </svg>
+                <GraduationCap size={16} weight="bold" />
               </span>
               <span>College Information</span>
             </div>
 
             <div className="feature-badge badge-pos-2">
               <span className="feature-badge-icon">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-                </svg>
+                <Lightning size={16} weight="bold" />
               </span>
               <span>Syllabus & Subjects</span>
             </div>
 
             <div className="feature-badge badge-pos-3">
               <span className="feature-badge-icon">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="2" y1="12" x2="22" y2="12"></line>
-                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-                </svg>
+                <BellSimple size={16} weight="bold" />
               </span>
               <span>Notices & Updates</span>
             </div>
 
             <div className="feature-badge badge-pos-4">
               <span className="feature-badge-icon">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-                </svg>
+                <BookmarkSimple size={16} weight="bold" />
               </span>
               <span>Source-backed Answers</span>
             </div>
@@ -333,10 +307,7 @@ export default function LandingPage({
               <div className="feature-card">
                 <div className="feature-card-header">
                   <div className="feature-icon-box">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-                    </svg>
+                    <BookOpenText size={22} weight="bold" />
                   </div>
                   <span className="feature-tag">CURRICULUM</span>
                 </div>
@@ -350,9 +321,7 @@ export default function LandingPage({
               <div className="feature-card">
                 <div className="feature-card-header">
                   <div className="feature-icon-box">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-                    </svg>
+                    <Pulse size={22} weight="bold" />
                   </div>
                   <span className="feature-tag">DATA PIPELINE</span>
                 </div>
@@ -366,10 +335,7 @@ export default function LandingPage({
               <div className="feature-card">
                 <div className="feature-card-header">
                   <div className="feature-icon-box">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="11" cy="11" r="8"></circle>
-                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    </svg>
+                    <MagnifyingGlass size={22} weight="bold" />
                   </div>
                   <span className="feature-tag">SEMANTIC SEARCH</span>
                 </div>
@@ -383,9 +349,7 @@ export default function LandingPage({
               <div className="feature-card">
                 <div className="feature-card-header">
                   <div className="feature-icon-box">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                    </svg>
+                    <ShieldCheck size={22} weight="bold" />
                   </div>
                   <span className="feature-tag">ANTI-HALLUCINATION</span>
                 </div>
@@ -399,11 +363,7 @@ export default function LandingPage({
               <div className="feature-card">
                 <div className="feature-card-header">
                   <div className="feature-icon-box">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                      <polyline points="17 8 12 3 7 8"></polyline>
-                      <line x1="12" y1="3" x2="12" y2="15"></line>
-                    </svg>
+                    <FileArrowUp size={22} weight="bold" />
                   </div>
                   <span className="feature-tag">STUDENT WORKSPACE</span>
                 </div>
@@ -417,12 +377,7 @@ export default function LandingPage({
               <div className="feature-card">
                 <div className="feature-card-header">
                   <div className="feature-icon-box">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                      <circle cx="9" cy="7" r="4"></circle>
-                      <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                      <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                    </svg>
+                    <UsersFour size={22} weight="bold" />
                   </div>
                   <span className="feature-tag">CAMPUS INTEL</span>
                 </div>
@@ -444,7 +399,7 @@ export default function LandingPage({
             <div className="section-header">
               <span className="section-eyebrow">ARCHITECTURE</span>
               <h2 className="section-headline">
-                From Raw Document to Cited Answer <br />
+                Raw Document to Cited Answer <br />
                 <span className="text-gradient">in Four Engineered Stages.</span>
               </h2>
               <p className="section-subheadline">
@@ -550,9 +505,14 @@ export default function LandingPage({
                 <div className="github-card">
                   <div className="github-card-top">
                     <div className="github-icon-title">
-                      <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
-                      </svg>
+                      <img
+                        src="https://cdn.simpleicons.org/github/white"
+                        alt="GitHub"
+                        width="28"
+                        height="28"
+                        className="github-card-logo"
+                        loading="lazy"
+                      />
                       <div>
                         <div className="github-repo-name">smitzzz07/RAG_based_LDRP_chatbox-</div>
                         <span className="github-tagline">Open-source Academic Assistant</span>
@@ -583,10 +543,7 @@ export default function LandingPage({
                     className="github-cta-btn"
                   >
                     <span>View Repository on GitHub</span>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="7" y1="17" x2="17" y2="7"></line>
-                      <polyline points="7 7 17 7 17 17"></polyline>
-                    </svg>
+                    <ArrowUpRight size={16} weight="bold" />
                   </a>
                 </div>
               </div>
@@ -636,14 +593,9 @@ export default function LandingPage({
                         }`}
                       >
                         {isOpen ? (
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                          </svg>
+                          <Minus size={14} weight="bold" />
                         ) : (
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                            <line x1="12" y1="5" x2="12" y2="19"></line>
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                          </svg>
+                          <Plus size={14} weight="bold" />
                         )}
                       </span>
                     </button>
@@ -721,9 +673,14 @@ export default function LandingPage({
                 className="footer-link footer-github-link"
                 title="View on GitHub"
               >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
-                </svg>
+                <img
+                  src="https://cdn.simpleicons.org/github/white"
+                  alt="GitHub"
+                  width="16"
+                  height="16"
+                  className="footer-github-icon"
+                  loading="lazy"
+                />
                 <span>GitHub</span>
               </a>
               {user ? (

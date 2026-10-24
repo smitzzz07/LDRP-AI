@@ -1,6 +1,18 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import "../Auth.css";
 import logoImg from "../assets/logo.webp";
+import AuthVisualPanel from "../components/AuthVisualPanel";
+import {
+  EnvelopeSimple as Mail,
+  LockSimple as Lock,
+  ArrowClockwise as RefreshCw,
+  Eye,
+  EyeSlash as EyeOff,
+  ArrowRight,
+  ArrowLeft,
+  ShieldCheck,
+  Check,
+} from "@phosphor-icons/react";
 
 const AUTH_API = "http://127.0.0.1:8000/api/auth";
 const REQUEST_TIMEOUT_MS = 10000;
@@ -50,8 +62,38 @@ async function fetchJsonWithTimeout(url, options = {}, timeoutMs = REQUEST_TIMEO
   }
 }
 
-export default function Login({ onLogin, onShowSignup }) {
-  const [email, setEmail] = useState("");
+export default function Login({ onLogin, onShowSignup, onNavigateLanding }) {
+  // Read saved user name and email from previous login/session
+  const [savedUserName] = useState(() => {
+    try {
+      const saved = localStorage.getItem("user") || sessionStorage.getItem("user");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.name && typeof parsed.name === "string" && parsed.name.trim()) {
+          return parsed.name.trim();
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return "";
+  });
+
+  const [email, setEmail] = useState(() => {
+    try {
+      const saved = localStorage.getItem("user") || sessionStorage.getItem("user");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.email && typeof parsed.email === "string") {
+          return parsed.email.trim();
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return "";
+  });
+
   const [password, setPassword] = useState("");
 
   const [captchaAnswer, setCaptchaAnswer] = useState("");
@@ -60,7 +102,7 @@ export default function Login({ onLogin, onShowSignup }) {
   const [captchaLoading, setCaptchaLoading] = useState(true);
   const [captchaError, setCaptchaError] = useState("");
 
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
 
   const [loading, setLoading] = useState(false);
@@ -74,7 +116,16 @@ export default function Login({ onLogin, onShowSignup }) {
 
   const captchaRequestId = useRef(0);
 
-  const loadCaptcha = useCallback(async () => {
+  const handleBackToLanding = () => {
+    if (onNavigateLanding) {
+      onNavigateLanding();
+    } else {
+      window.location.href = "/";
+    }
+  };
+
+  // loadCaptcha accepting clearLoginError flag so a failed login attempt doesn't wipe the error
+  const loadCaptcha = useCallback(async (clearLoginError = true) => {
     const requestId = ++captchaRequestId.current;
 
     setCaptchaLoading(true);
@@ -82,12 +133,14 @@ export default function Login({ onLogin, onShowSignup }) {
     setCaptchaAnswer("");
     setCaptchaToken("");
     setCaptchaQuestion("");
-    setError("");
+    if (clearLoginError) {
+      setError("");
+    }
 
     try {
       const data = await fetchJsonWithTimeout(`${AUTH_API}/captcha`);
 
-      // Ignore an older request if the user refreshed the CAPTCHA again.
+      // Ignore older request if user clicked refresh repeatedly
       if (requestId !== captchaRequestId.current) return;
 
       if (!data.question || !data.captcha_token) {
@@ -107,9 +160,8 @@ export default function Login({ onLogin, onShowSignup }) {
   }, []);
 
   useEffect(() => {
-    loadCaptcha();
+    loadCaptcha(false);
     return () => {
-      // Invalidate pending CAPTCHA responses when this screen unmounts.
       captchaRequestId.current += 1;
     };
   }, [loadCaptcha]);
@@ -172,9 +224,9 @@ export default function Login({ onLogin, onShowSignup }) {
 
       onLogin?.(user);
     } catch (err) {
-      setError(err.message || "Unable to sign in. Please try again.");
-      // CAPTCHA challenges are commonly single-use, so load a fresh one.
-      loadCaptcha();
+      setError(err.message || "Invalid email or password. Please try again.");
+      // Pass false so loadCaptcha preserves the error message
+      loadCaptcha(false);
     } finally {
       setLoading(false);
     }
@@ -228,251 +280,325 @@ export default function Login({ onLogin, onShowSignup }) {
     setError("");
   };
 
+  // -------------------------------------------------------------
+  // Render Forgot Password View (Split Screen with Dark Blue Shader)
+  // -------------------------------------------------------------
   if (showForgotPassword) {
     return (
       <div className="auth-page">
-        <div className="auth-background">
-          <div className="auth-glow auth-glow-one" />
-          <div className="auth-glow auth-glow-two" />
-        </div>
+        <div className="auth-split-wrapper">
+          {/* Left Panel: Form */}
+          <div className="auth-form-column">
+            <div className="auth-form-content">
+              {/* Back to Home / Navigation */}
+              <div className="auth-top-nav-bar">
+                <button
+                  type="button"
+                  onClick={handleBackToLanding}
+                  className="auth-back-nav-btn"
+                  title="Back to Landing Page"
+                  aria-label="Back to Landing Page"
+                >
+                  <ArrowLeft size={16} />
+                  <span>Back to Home</span>
+                </button>
+              </div>
 
-        <div className="auth-card">
-          <div className="auth-logo">
-            <img src={logoImg} alt="LDRP Logo" className="auth-logo-img" />
-            <div>
-              <h1>LDRP AI</h1>
-              <span>Academic Assistant</span>
-            </div>
-          </div>
+              {/* Header Logo & Wordmark (No Wrapper Box) */}
+              <div className="auth-header-bar">
+                <img src={logoImg} alt="LDRP Logo" className="auth-logo-img" />
+                <div className="auth-brand-text">
+                  <h1>LDRP AI</h1>
+                  <span>AI Academic Assistant</span>
+                </div>
+              </div>
 
-          <div className="auth-heading">
-            <h2>Forgot Password</h2>
-            <p>Enter your registered email address to reset your password.</p>
-          </div>
+              {/* Heading */}
+              <div className="auth-intro">
+                <h2>Forgot Password</h2>
+                <p>Enter your registered email address to receive password reset instructions.</p>
+              </div>
 
-          <form onSubmit={handleForgotPassword} className="auth-form">
-            <div className="form-group">
-              <label htmlFor="forgot-email">Email Address</label>
-              <div className="auth-input-wrapper">
-                <span className="auth-input-icon" aria-hidden="true">✉</span>
-                <input
-                  id="forgot-email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={forgotEmail}
-                  onChange={(event) => setForgotEmail(event.target.value)}
-                  autoComplete="email"
-                  required
-                />
+              {/* Form */}
+              <form onSubmit={handleForgotPassword} className="auth-form">
+                <div className="auth-field-box">
+                  <input
+                    id="forgot-email"
+                    type="email"
+                    placeholder="Enter your registered email"
+                    value={forgotEmail}
+                    onChange={(event) => setForgotEmail(event.target.value)}
+                    autoComplete="email"
+                    className="auth-input-native"
+                    required
+                  />
+                  <span className="auth-field-tag">
+                    <Mail size={16} />
+                    Email
+                  </span>
+                </div>
+
+                {forgotMessage && (
+                  <div
+                    className={`auth-alert-box ${forgotSuccess ? "auth-alert-success" : "auth-alert-error"}`}
+                    role="status"
+                  >
+                    {forgotMessage}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  className="auth-primary-submit-btn"
+                  disabled={forgotLoading}
+                >
+                  {forgotLoading ? (
+                    <>
+                      <span className="auth-loading-spinner" />
+                      Sending Request...
+                    </>
+                  ) : (
+                    <>
+                      Send Reset Instructions
+                      <ArrowRight size={17} />
+                    </>
+                  )}
+                </button>
+              </form>
+
+              {/* Back to Login Action */}
+              <div className="auth-switch-section">
+                <button
+                  type="button"
+                  onClick={backToLogin}
+                  className="auth-switch-highlight-btn"
+                  style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+                >
+                  <ArrowLeft size={15} />
+                  Back to Sign In
+                </button>
               </div>
             </div>
-
-            {forgotMessage && (
-              <div className={forgotSuccess ? "auth-success" : "auth-error"} role="status">
-                {forgotMessage}
-              </div>
-            )}
-
-            <button type="submit" className="auth-submit" disabled={forgotLoading}>
-              {forgotLoading ? "Sending..." : "Send Reset Request"}
-            </button>
-          </form>
-
-          <div className="auth-switch">
-            <button type="button" onClick={backToLogin}>
-              ← Back to Login
-            </button>
           </div>
 
-          <div className="auth-footer">
-            <span>Powered by</span>
-            <strong>LDRP RAG</strong>
-          </div>
+          {/* Right Panel: Dark Blue Shader Visual */}
+          <AuthVisualPanel
+            titleTop="Secure,"
+            titleBottom="Seamless access"
+          />
         </div>
       </div>
     );
   }
 
+  // -------------------------------------------------------------
+  // Render Sign In View (Split Screen with Dark Blue Shader)
+  // -------------------------------------------------------------
   return (
     <div className="auth-page">
-      <div className="auth-background">
-        <div className="auth-glow auth-glow-one" />
-        <div className="auth-glow auth-glow-two" />
-      </div>
-
-      <div className="auth-card">
-        <div className="auth-logo">
-          <img src={logoImg} alt="LDRP Logo" className="auth-logo-img" />
-          <div>
-            <h1>LDRP AI</h1>
-            <span>Academic Assistant</span>
-          </div>
-        </div>
-
-        <div className="auth-heading">
-          <h2>Welcome Back</h2>
-          <p>Sign in to continue to your LDRP AI assistant.</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="auth-form">
-          <div className="form-group">
-            <label htmlFor="login-email">Email Address</label>
-            <div className="auth-input-wrapper">
-              <span className="auth-input-icon" aria-hidden="true">✉</span>
-              <input
-                id="login-email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                autoComplete="email"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="login-password">Password</label>
-            <div className="auth-input-wrapper">
-              <span className="auth-input-icon" aria-hidden="true">⌑</span>
-              <input
-                id="login-password"
-                type={showPassword ? "text" : "password"}
-                placeholder="Enter your password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                autoComplete="current-password"
-                required
-              />
+      <div className="auth-split-wrapper">
+        {/* Left Panel: Form */}
+        <div className="auth-form-column">
+          <div className="auth-form-content">
+            {/* Back to Home / Navigation */}
+            <div className="auth-top-nav-bar">
               <button
                 type="button"
-                className="password-toggle"
-                onClick={() => setShowPassword((value) => !value)}
-                aria-label={showPassword ? "Hide password" : "Show password"}
+                onClick={handleBackToLanding}
+                className="auth-back-nav-btn"
+                title="Back to Landing Page"
+                aria-label="Back to Landing Page"
               >
-                {showPassword ? "Hide" : "Show"}
-              </button>
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label>Security Verification</label>
-
-            <div style={{ display: "flex", gap: "10px", alignItems: "stretch" }}>
-              <div
-                aria-live="polite"
-                style={{
-                  flex: 1,
-                  minHeight: "48px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  border: "1px solid rgba(255,255,255,0.15)",
-                  borderRadius: "10px",
-                  background: "rgba(255,255,255,0.05)",
-                  fontWeight: "700",
-                  fontSize: "18px",
-                  letterSpacing: "2px",
-                  padding: "10px",
-                  textAlign: "center",
-                }}
-              >
-                {captchaLoading
-                  ? "Loading..."
-                  : captchaError
-                    ? "CAPTCHA unavailable"
-                    : captchaQuestion || "Refresh CAPTCHA"}
-              </div>
-
-              <button
-                type="button"
-                onClick={loadCaptcha}
-                disabled={captchaLoading}
-                style={{
-                  minHeight: "48px",
-                  width: "60px",
-                  borderRadius: "10px",
-                  border: "1px solid rgba(255,255,255,0.15)",
-                  background: "rgba(255,255,255,0.05)",
-                  color: "inherit",
-                  cursor: captchaLoading ? "not-allowed" : "pointer",
-                  fontSize: "20px",
-                  opacity: captchaLoading ? 0.6 : 1,
-                }}
-                title="Refresh CAPTCHA"
-                aria-label="Refresh CAPTCHA"
-              >
-                ↻
+                <ArrowLeft size={16} />
+                <span>Back to Home</span>
               </button>
             </div>
 
-            {captchaError && (
-              <div className="auth-error" role="alert" style={{ marginTop: "8px" }}>
-                {captchaError}
+            {/* Header Logo & Wordmark (No Wrapper Box) */}
+            <div className="auth-header-bar">
+              <img src={logoImg} alt="LDRP Logo" className="auth-logo-img" />
+              <div className="auth-brand-text">
+                <h1>LDRP AI</h1>
+                <span>Academic Assistant</span>
               </div>
-            )}
+            </div>
 
-            <div className="auth-input-wrapper" style={{ marginTop: "10px" }}>
-              <span className="auth-input-icon" aria-hidden="true">#</span>
-              <input
-                type="text"
-                placeholder="Enter CAPTCHA answer"
-                value={captchaAnswer}
-                onChange={(event) => setCaptchaAnswer(event.target.value)}
-                autoComplete="off"
-                disabled={!captchaToken || captchaLoading}
-                required
-              />
+            {/* Intro Heading with profile name if saved */}
+            <div className="auth-intro">
+              <h2>
+                Welcome back{savedUserName ? `, ${savedUserName}` : ""}
+              </h2>
+              <p>Sign in to continue to your LDRP AI academic workspace.</p>
+            </div>
+
+            {/* Login Form */}
+            <form onSubmit={handleSubmit} className="auth-form">
+              {/* Email Field Box */}
+              <div className="auth-field-box">
+                <input
+                  id="login-email"
+                  type="email"
+                  placeholder="name@ldrp.ac.in"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  autoComplete="email"
+                  className="auth-input-native"
+                  required
+                />
+                <span className="auth-field-tag">
+                  <Mail size={16} />
+                  Email
+                </span>
+              </div>
+
+              {/* Password Field Box */}
+              <div className="auth-field-box">
+                <input
+                  id="login-password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  autoComplete="current-password"
+                  className="auth-input-native"
+                  required
+                />
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <button
+                    type="button"
+                    className="auth-password-toggle-btn"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    title={showPassword ? "Hide password" : "Show password"}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                  <span className="auth-field-tag">
+                    <Lock size={15} />
+                  </span>
+                </div>
+              </div>
+
+              {/* Security Verification / CAPTCHA */}
+              <div className="auth-captcha-wrapper">
+                <div className="auth-captcha-header">
+                  <span className="auth-captcha-label">
+                    <ShieldCheck size={14} />
+                    Verify You're Human
+                  </span>
+                </div>
+
+                <div className="auth-captcha-display-row">
+                  <div className="auth-captcha-badge" aria-live="polite">
+                    {captchaLoading
+                      ? "Loading..."
+                      : captchaError
+                        ? "CAPTCHA unavailable"
+                        : captchaQuestion || "Click Refresh"}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => loadCaptcha(true)}
+                    disabled={captchaLoading}
+                    className="auth-captcha-refresh-btn"
+                    title="Refresh CAPTCHA challenge"
+                    aria-label="Refresh CAPTCHA challenge"
+                  >
+                    <RefreshCw size={17} className={captchaLoading ? "auth-loading-spinner" : ""} />
+                  </button>
+                </div>
+
+                {captchaError && (
+                  <div className="auth-alert-box auth-alert-error" role="alert">
+                    {captchaError}
+                  </div>
+                )}
+
+                <div className="auth-field-box" style={{ height: "50px" }}>
+                  <input
+                    type="text"
+                    placeholder="Enter CAPTCHA answer"
+                    value={captchaAnswer}
+                    onChange={(event) => setCaptchaAnswer(event.target.value)}
+                    autoComplete="off"
+                    disabled={!captchaToken || captchaLoading}
+                    className="auth-input-native"
+                    required
+                  />
+                  <span className="auth-field-tag">Answer</span>
+                </div>
+              </div>
+
+              {/* Error Message Box - placed right below CAPTCHA as requested */}
+              {error && (
+                <div className="auth-alert-box auth-alert-error" role="alert">
+                          <span>{error}</span>
+                </div>
+              )}
+
+              {/* Remember Me & Forgot Password Options */}
+              <div className="auth-options-row">
+                <label className="auth-checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(event) => setRememberMe(event.target.checked)}
+                  />
+                  <span className="auth-checkbox-box">
+                    {rememberMe && <Check size={13} color="#ffffff" strokeWidth={3} />}
+                  </span>
+                  <span>Remember me</span>
+                </label>
+
+                <button
+                  type="button"
+                  className="auth-link-btn"
+                  onClick={openForgotPassword}
+                >
+                  Forgot password?
+                </button>
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                className="auth-primary-submit-btn"
+                disabled={loading || captchaLoading || !captchaToken}
+              >
+                {loading ? (
+                  <>
+                    <span className="auth-loading-spinner" />
+                    Signing in...
+                  </>
+                ) : (
+                  <>
+                    Sign In
+                    <ArrowRight size={17} />
+                  </>
+                )}
+              </button>
+            </form>
+
+            {/* Switch to Signup */}
+            <div className="auth-switch-section">
+              <span>Don't have an account?</span>
+              <button
+                type="button"
+                className="auth-switch-highlight-btn"
+                onClick={onShowSignup}
+              >
+                Create account
+              </button>
             </div>
           </div>
-
-          <div className="auth-options">
-            <label className="remember-me">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(event) => setRememberMe(event.target.checked)}
-              />
-              <span>Remember me</span>
-            </label>
-
-            <button type="button" className="forgot-password" onClick={openForgotPassword}>
-              Forgot password?
-            </button>
-          </div>
-
-          {error && <div className="auth-error" role="alert">{error}</div>}
-
-          <button
-            type="submit"
-            className="auth-submit"
-            disabled={loading || captchaLoading || !captchaToken}
-          >
-            {loading ? (
-              <>
-                <span className="auth-spinner" />
-                Signing in...
-              </>
-            ) : (
-              <>
-                Sign In
-                <span>→</span>
-              </>
-            )}
-          </button>
-        </form>
-
-        <div className="auth-switch">
-          <span>Don't have an account?</span>
-          <button type="button" onClick={onShowSignup}>
-            Create account
-          </button>
         </div>
 
-        <div className="auth-footer">
-          <span>Powered by</span>
-          <strong>LDRP RAG</strong>
-        </div>
+        {/* Right Panel: Visual Dark Blue Grain Shader Showcase */}
+        <AuthVisualPanel
+          titleTop="Think fast,"
+          titleBottom="Learn faster"
+        />
       </div>
     </div>
   );

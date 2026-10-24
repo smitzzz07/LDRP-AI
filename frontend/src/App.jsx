@@ -1,8 +1,21 @@
 import { useEffect, useRef, useState } from "react";
-
 import "./App.css";
 import "./LDRP_App_chatgpt_pdf_card.css";
 import logoImg from "./assets/logo.webp";
+import {
+  List,
+  Plus,
+  SignOut,
+  ChatsCircle,
+  ChatText,
+  Trash,
+  Sparkle,
+  BookBookmark,
+  FilePdf,
+  Paperclip,
+  ArrowUp,
+  X,
+} from "@phosphor-icons/react";
 
 
 
@@ -893,33 +906,19 @@ function ChatApp({ user, onLogout }) {
 
 
           <button
-
             type="button"
-
             className="header-menu"
-
             onClick={() =>
-
               setHistoryOpen((value) => !value)
-
             }
-
             title={
-
               historyOpen
-
                 ? "Hide chat history"
-
                 : "Show chat history"
-
             }
-
             aria-label="Toggle chat history"
-
           >
-
-            ☰
-
+            <List size={20} weight="bold" />
           </button>
 
 
@@ -965,15 +964,11 @@ function ChatApp({ user, onLogout }) {
 
 
           <button
-
             className="new-chat"
-
             onClick={newChat}
-
           >
-
-            + New Chat
-
+            <Plus size={15} weight="bold" />
+            <span>New Chat</span>
           </button>
 
 
@@ -1015,19 +1010,12 @@ function ChatApp({ user, onLogout }) {
 
 
             <button
-
               className="logout-button"
-
               onClick={onLogout}
-
               title="Logout"
-
               aria-label="Logout"
-
             >
-
-              ↪
-
+              <SignOut size={18} weight="bold" />
             </button>
 
 
@@ -1075,9 +1063,7 @@ function ChatApp({ user, onLogout }) {
               <div className="history-title">
 
                 <span className="history-title-icon">
-
-                  ◫
-
+                  <ChatsCircle size={18} weight="bold" />
                 </span>
 
 
@@ -1141,9 +1127,7 @@ function ChatApp({ user, onLogout }) {
               <div className="history-empty">
 
                 <div className="history-empty-icon">
-
-                  ✦
-
+                  <Sparkle size={24} weight="fill" />
                 </div>
 
 
@@ -1189,9 +1173,7 @@ function ChatApp({ user, onLogout }) {
 
 
                   <span className="history-item-icon">
-
-                    ◇
-
+                    <ChatText size={16} weight="bold" />
                   </span>
 
 
@@ -1233,31 +1215,16 @@ function ChatApp({ user, onLogout }) {
 
 
                   <span
-
                     className="history-delete"
-
                     onClick={(event) =>
-
                       deleteConversation(
-
                         event,
-
                         item.id
-
                       )
-
                     }
-
                     title="Delete conversation"
-
                   >
-
-                    {deletingId === item.id
-
-                      ? "…"
-
-                      : "×"}
-
+                    {deletingId === item.id ? "…" : <Trash size={14} weight="bold" />}
                   </span>
 
 
@@ -1762,11 +1729,8 @@ function ChatApp({ user, onLogout }) {
 
 
                             <div className="sources-title">
-
-                              <span>◈</span>
-
-                              Sources
-
+                              <BookBookmark size={15} weight="bold" />
+                              <span>Sources</span>
                             </div>
 
 
@@ -1792,15 +1756,11 @@ function ChatApp({ user, onLogout }) {
 
 
                                   <div className="source-icon">
-
-                                    {source.source_type ===
-
-                                    "pdf"
-
-                                      ? "📄"
-
-                                      : "🌐"}
-
+                                    {source.source_type === "pdf" ? (
+                                      <FilePdf size={16} weight="bold" />
+                                    ) : (
+                                      <BookBookmark size={16} weight="bold" />
+                                    )}
                                   </div>
 
 
@@ -2083,7 +2043,7 @@ function ChatApp({ user, onLogout }) {
                   title="Remove PDF"
                   aria-label="Remove uploaded PDF"
                 >
-                  ×
+                  <X size={15} weight="bold" />
                 </button>
               </div>
             </div>
@@ -2099,7 +2059,7 @@ function ChatApp({ user, onLogout }) {
               title="Upload PDF"
               aria-label="Upload PDF"
             >
-              {uploadingPdf ? "…" : "+"}
+              {uploadingPdf ? "…" : <Paperclip size={18} weight="bold" />}
             </button>
 
             <textarea
@@ -2117,7 +2077,7 @@ function ChatApp({ user, onLogout }) {
               disabled={!question.trim() || loading || uploadingPdf}
               aria-label="Send message"
             >
-              <span>↑</span>
+              <ArrowUp size={18} weight="bold" />
             </button>
           </div>
         </div>
@@ -2432,6 +2392,12 @@ try {
 
         }
 
+        onNavigateLanding={() =>
+
+          setScreen("landing")
+
+        }
+
       />
 
     );
@@ -2453,6 +2419,12 @@ try {
         onShowLogin={() =>
 
           setScreen("login")
+
+        }
+
+        onNavigateLanding={() =>
+
+          setScreen("landing")
 
         }
 

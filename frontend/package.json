@@ -10,6 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@paper-design/shaders-react": "^0.0.82",
+    "@phosphor-icons/react": "^2.1.10",
+    "lucide-react": "^1.61.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
